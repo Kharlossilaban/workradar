@@ -1,0 +1,173 @@
+import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
+import '../theme/app_theme.dart';
+import '../models/task.dart';
+import 'package:intl/intl.dart';
+
+class TaskCard extends StatelessWidget {
+  final Task task;
+  final VoidCallback? onTap;
+  final VoidCallback? onComplete;
+
+  const TaskCard({super.key, required this.task, this.onTap, this.onComplete});
+
+  Color get _categoryColor {
+    switch (task.categoryName.toLowerCase()) {
+      case 'kerja':
+        return AppTheme.categoryWork;
+      case 'pribadi':
+        return AppTheme.categoryPersonal;
+      case 'wishlist':
+        return AppTheme.categoryWishlist;
+      case 'hari ulang tahun':
+        return AppTheme.categoryBirthday;
+      default:
+        return AppTheme.primaryColor;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDarkMode ? AppTheme.darkCard : Colors.white;
+    final textPrimaryColor = isDarkMode
+        ? AppTheme.darkTextPrimary
+        : AppTheme.textPrimary;
+    final textLightColor = isDarkMode
+        ? AppTheme.darkTextLight
+        : AppTheme.textLight;
+    final textSecondaryColor = isDarkMode
+        ? AppTheme.darkTextSecondary
+        : AppTheme.textSecondary;
+    final dividerColor = isDarkMode
+        ? AppTheme.darkDivider
+        : Colors.grey.shade100;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(AppTheme.borderRadiusLarge),
+          boxShadow: isDarkMode ? null : AppTheme.cardShadow,
+        ),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Checkbox circle
+                  GestureDetector(
+                    onTap: onComplete,
+                    child: Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: task.isCompleted
+                              ? AppTheme.successColor
+                              : _categoryColor,
+                          width: 2,
+                        ),
+                        color: task.isCompleted
+                            ? AppTheme.successColor
+                            : Colors.transparent,
+                      ),
+                      child: task.isCompleted
+                          ? const Icon(
+                              Icons.check,
+                              size: 16,
+                              color: Colors.white,
+                            )
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Task content
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          task.title,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: task.isCompleted
+                                ? textLightColor
+                                : textPrimaryColor,
+                            decoration: task.isCompleted
+                                ? TextDecoration.lineThrough
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: _categoryColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            task.categoryName,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: _categoryColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Divider
+            Container(height: 1, color: dividerColor),
+            // Bottom info row
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  if (task.hasDeadline) ...[
+                    Icon(Iconsax.clock, size: 16, color: textLightColor),
+                    const SizedBox(width: 6),
+                    Text(
+                      DateFormat('HH:mm').format(task.deadline!),
+                      style: TextStyle(fontSize: 13, color: textSecondaryColor),
+                    ),
+                    const SizedBox(width: 16),
+                  ],
+                  if (task.hasRepeat) ...[
+                    Icon(Iconsax.repeat, size: 16, color: textLightColor),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        task.hasDeadline
+                            ? DateFormat('dd MMM yyyy').format(task.deadline!)
+                            : task.repeatTypeString,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: textSecondaryColor,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
