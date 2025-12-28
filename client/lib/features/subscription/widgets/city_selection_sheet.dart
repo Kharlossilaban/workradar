@@ -27,10 +27,23 @@ class CitySelectionSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDarkMode ? const Color(0xFF1A1A2E) : Colors.white;
+    final textPrimaryColor = isDarkMode ? Colors.white : AppTheme.textPrimary;
+    final textSecondaryColor = isDarkMode
+        ? Colors.white60
+        : AppTheme.textSecondary;
+    final handleBarColor = isDarkMode
+        ? Colors.white.withValues(alpha: 0.3)
+        : Colors.grey.shade300;
+    final itemBgColor = isDarkMode
+        ? Colors.white.withValues(alpha: 0.05)
+        : Colors.grey.shade100;
+
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF1A1A2E),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -41,7 +54,7 @@ class CitySelectionSheet extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.3),
+              color: handleBarColor,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -54,7 +67,7 @@ class CitySelectionSheet extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withOpacity(0.2),
+                    color: AppTheme.primaryColor.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
@@ -64,21 +77,21 @@ class CitySelectionSheet extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Pilih Kota',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: textPrimaryColor,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Text(
                       'Kota-kota populer di Indonesia',
-                      style: TextStyle(color: Colors.white60, fontSize: 12),
+                      style: TextStyle(color: textSecondaryColor, fontSize: 12),
                     ),
                   ],
                 ),
@@ -106,8 +119,8 @@ class CitySelectionSheet extends StatelessWidget {
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? AppTheme.primaryColor.withOpacity(0.2)
-                          : Colors.white.withOpacity(0.05),
+                          ? AppTheme.primaryColor.withValues(alpha: 0.2)
+                          : itemBgColor,
                       borderRadius: BorderRadius.circular(16),
                       border: isSelected
                           ? Border.all(color: AppTheme.primaryColor, width: 1.5)
@@ -119,7 +132,7 @@ class CitySelectionSheet extends StatelessWidget {
                           Iconsax.building_3,
                           color: isSelected
                               ? AppTheme.primaryColor
-                              : Colors.white60,
+                              : textSecondaryColor,
                           size: 24,
                         ),
                         const SizedBox(width: 16),
@@ -132,7 +145,7 @@ class CitySelectionSheet extends StatelessWidget {
                                 style: TextStyle(
                                   color: isSelected
                                       ? AppTheme.primaryColor
-                                      : Colors.white,
+                                      : textPrimaryColor,
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -140,8 +153,10 @@ class CitySelectionSheet extends StatelessWidget {
                               const SizedBox(height: 2),
                               Text(
                                 city['province'],
-                                style: const TextStyle(
-                                  color: Colors.white54,
+                                style: TextStyle(
+                                  color: textSecondaryColor.withValues(
+                                    alpha: 0.8,
+                                  ),
                                   fontSize: 12,
                                 ),
                               ),
@@ -151,7 +166,7 @@ class CitySelectionSheet extends StatelessWidget {
                         if (isSelected)
                           Container(
                             padding: const EdgeInsets.all(6),
-                            decoration: BoxDecoration(
+                            decoration: const BoxDecoration(
                               color: AppTheme.primaryColor,
                               shape: BoxShape.circle,
                             ),

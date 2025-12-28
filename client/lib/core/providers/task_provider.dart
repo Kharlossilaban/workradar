@@ -21,6 +21,9 @@ class TaskProvider extends ChangeNotifier {
     return completed;
   }
 
+  /// Get total count of all completed tasks
+  int get totalCompletedTasks => _tasks.where((t) => t.isCompleted).length;
+
   /// Get tasks for a specific date
   List<Task> getTasksForDate(DateTime date, {bool includeCompleted = false}) {
     return _tasks.where((task) {

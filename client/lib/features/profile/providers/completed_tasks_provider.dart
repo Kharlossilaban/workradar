@@ -1,68 +1,56 @@
 import 'package:flutter/foundation.dart';
 import '../../../core/models/task.dart';
 
-/// Provider for managing workload chart data and date navigation
-class WorkloadProvider with ChangeNotifier {
-  // Map to store task duration sum by date (YYYY-MM-DD format)
-  final Map<String, int> _taskDurations = {};
+/// Provider for managing completed tasks chart data and date navigation
+class CompletedTasksProvider with ChangeNotifier {
+  // Map to store completed task counts by date (YYYY-MM-DD format)
+  final Map<String, int> _completedCounts = {};
 
   // Current date offset for navigation (0 = current period, -1 = previous, +1 = next)
   int _dateOffset = 0;
 
   int get dateOffset => _dateOffset;
 
-  /// Get total all-time workload in minutes
-  int get totalAllTimeWorkload {
-    int total = 0;
-    for (final duration in _taskDurations.values) {
-      total += duration;
-    }
-    return total;
-  }
-
-  /// Sync workload data from a list of tasks
+  /// Sync completed tasks data from a list of tasks
   void syncFromTasks(List<Task> tasks) {
-    _taskDurations.clear();
+    _completedCounts.clear();
     for (final task in tasks) {
       if (task.isCompleted) {
         // Use deadline if available, otherwise fallback to completion time or now
         final date = task.deadline ?? task.completedAt ?? DateTime.now();
         final dateKey = _formatDateKey(date);
-        // Add duration (default to 30 mins if not set, or according to user preference)
-        // For now, if duration is null, we treat it as 0 or a minimal value
-        final duration = task.durationMinutes ?? 0;
-        _taskDurations[dateKey] = (_taskDurations[dateKey] ?? 0) + duration;
+        _completedCounts[dateKey] = (_completedCounts[dateKey] ?? 0) + 1;
       }
     }
     notifyListeners();
   }
 
   /// Record a task completion for a specific date
-  void recordTaskCompletion(DateTime date, {int duration = 0}) {
+  void recordTaskCompletion(DateTime date) {
     final dateKey = _formatDateKey(date);
-    _taskDurations[dateKey] = (_taskDurations[dateKey] ?? 0) + duration;
+    _completedCounts[dateKey] = (_completedCounts[dateKey] ?? 0) + 1;
     notifyListeners();
   }
 
-  /// Get total duration for a specific date
-  int getTotalDuration(DateTime date) {
+  /// Get completed count for a specific date
+  int getCompletedCount(DateTime date) {
     final dateKey = _formatDateKey(date);
-    return _taskDurations[dateKey] ?? 0;
+    return _completedCounts[dateKey] ?? 0;
   }
 
-  /// Get daily durations for a specific week (7 days)
-  List<int> getDailyDurations(DateTime startOfWeek) {
-    final durations = <int>[];
+  /// Get daily completed counts for a specific week (7 days)
+  List<int> getDailyCounts(DateTime startOfWeek) {
+    final counts = <int>[];
     for (int i = 0; i < 7; i++) {
       final date = startOfWeek.add(Duration(days: i));
-      durations.add(getTotalDuration(date));
+      counts.add(getCompletedCount(date));
     }
-    return durations;
+    return counts;
   }
 
-  /// Get weekly durations for a specific month (4 weeks)
-  List<int> getWeeklyDurations(DateTime monthDate) {
-    final durations = <int>[];
+  /// Get weekly completed counts for a specific month (4 weeks)
+  List<int> getWeeklyCounts(DateTime monthDate) {
+    final counts = <int>[];
     // Get first day of month
     final firstDayOfMonth = DateTime(monthDate.year, monthDate.month, 1);
 
@@ -71,61 +59,61 @@ class WorkloadProvider with ChangeNotifier {
       int weekTotal = 0;
       final weekStart = firstDayOfMonth.add(Duration(days: week * 7));
 
-      // Sum up durations for 7 days in this week
+      // Sum up counts for 7 days in this week
       for (int day = 0; day < 7; day++) {
         final date = weekStart.add(Duration(days: day));
         // Only count if still in the same month
         if (date.month == monthDate.month) {
-          weekTotal += getTotalDuration(date);
+          weekTotal += getCompletedCount(date);
         }
       }
-      durations.add(weekTotal);
+      counts.add(weekTotal);
     }
-    return durations;
+    return counts;
   }
 
-  /// Get monthly durations for a specific year (12 months)
-  List<int> getMonthlyDurations(int year) {
-    final durations = <int>[];
+  /// Get monthly completed counts for a specific year (12 months)
+  List<int> getMonthlyCounts(int year) {
+    final counts = <int>[];
     for (int month = 1; month <= 12; month++) {
       int monthTotal = 0;
       final daysInMonth = DateTime(year, month + 1, 0).day;
 
       for (int day = 1; day <= daysInMonth; day++) {
         final date = DateTime(year, month, day);
-        monthTotal += getTotalDuration(date);
+        monthTotal += getCompletedCount(date);
       }
-      durations.add(monthTotal);
+      counts.add(monthTotal);
     }
-    return durations;
+    return counts;
   }
 
-  /// Check if there's any task data for a given week
+  /// Check if there's any completed task data for a given week
   bool hasDataForWeek(DateTime startOfWeek) {
     for (int i = 0; i < 7; i++) {
       final date = startOfWeek.add(Duration(days: i));
-      if (getTotalDuration(date) > 0) return true;
+      if (getCompletedCount(date) > 0) return true;
     }
     return false;
   }
 
-  /// Check if there's any task data for a given month
+  /// Check if there's any completed task data for a given month
   bool hasDataForMonth(DateTime monthDate) {
     final daysInMonth = DateTime(monthDate.year, monthDate.month + 1, 0).day;
     for (int day = 1; day <= daysInMonth; day++) {
       final date = DateTime(monthDate.year, monthDate.month, day);
-      if (getTotalDuration(date) > 0) return true;
+      if (getCompletedCount(date) > 0) return true;
     }
     return false;
   }
 
-  /// Check if there's any task data for a given year
+  /// Check if there's any completed task data for a given year
   bool hasDataForYear(int year) {
     for (int month = 1; month <= 12; month++) {
       final daysInMonth = DateTime(year, month + 1, 0).day;
       for (int day = 1; day <= daysInMonth; day++) {
         final date = DateTime(year, month, day);
-        if (getTotalDuration(date) > 0) return true;
+        if (getCompletedCount(date) > 0) return true;
       }
     }
     return false;
@@ -178,7 +166,7 @@ class WorkloadProvider with ChangeNotifier {
 
   /// Clear all data (for testing purposes)
   void clearAllData() {
-    _taskDurations.clear();
+    _completedCounts.clear();
     _dateOffset = 0;
     notifyListeners();
   }

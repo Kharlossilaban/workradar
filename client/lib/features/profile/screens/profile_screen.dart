@@ -5,7 +5,9 @@ import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/task_provider.dart';
 import '../widgets/workload_chart.dart';
+import '../widgets/completed_tasks_chart.dart';
 import '../providers/workload_provider.dart';
+import '../providers/completed_tasks_provider.dart';
 import '../providers/profile_provider.dart';
 import 'profile_detail_screen.dart';
 import '../../subscription/screens/subscription_screen.dart';
@@ -19,15 +21,17 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   String _selectedPeriod = 'Daily';
+  String _selectedCompletedPeriod = 'Daily';
   final bool _isVip = true; // Set to true for VIP access during UI/UX testing
 
   @override
   void initState() {
     super.initState();
-    // Sync workload data when profile is opened
+    // Sync workload and completed tasks data when profile is opened
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final taskProvider = context.read<TaskProvider>();
       context.read<WorkloadProvider>().syncFromTasks(taskProvider.tasks);
+      context.read<CompletedTasksProvider>().syncFromTasks(taskProvider.tasks);
     });
   }
 
@@ -44,11 +48,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 20),
               _buildProfileHeader(isDarkMode),
               const SizedBox(height: 20),
+              _buildStatisticsCards(isDarkMode),
+              if (!_isVip) const SizedBox(height: 20),
               if (!_isVip) _buildVipBanner(),
+              const SizedBox(height: 20),
+              _buildWorkHoursCard(isDarkMode),
               const SizedBox(height: 20),
               _buildWorkloadCard(isDarkMode),
               const SizedBox(height: 20),
-              _buildWorkHoursCard(isDarkMode),
+              _buildCompletedTasksCard(isDarkMode),
               const SizedBox(height: 30),
             ],
           ),
@@ -86,7 +94,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     gradient: AppTheme.primaryGradient,
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.primaryColor.withOpacity(0.3),
+                        color: AppTheme.primaryColor.withValues(alpha: 0.3),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -178,7 +186,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: AppTheme.vipGold.withOpacity(0.4),
+              color: AppTheme.vipGold.withValues(alpha: 0.4),
               blurRadius: 15,
               offset: const Offset(0, 5),
             ),
@@ -190,7 +198,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               width: 50,
               height: 50,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(
@@ -255,7 +263,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withOpacity(0.1),
+                      color: AppTheme.primaryColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(
@@ -528,7 +536,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
+                      color: Colors.orange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(
@@ -622,6 +630,392 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Jadwal kerja berhasil disimpan!')),
+    );
+  }
+
+  Widget _buildStatisticsCards(bool isDarkMode) {
+    final textPrimaryColor = isDarkMode
+        ? AppTheme.darkTextPrimary
+        : AppTheme.textPrimary;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: Consumer2<WorkloadProvider, TaskProvider>(
+              builder: (context, workloadProvider, taskProvider, child) {
+                final totalMinutes = workloadProvider.totalAllTimeWorkload;
+                final hours = totalMinutes ~/ 60;
+                final minutes = totalMinutes % 60;
+                final displayText = hours > 0
+                    ? '$hours jam ${minutes > 0 ? "$minutes menit" : ""}'
+                    : '$minutes menit';
+
+                return _buildStatCard(
+                  icon: Iconsax.briefcase,
+                  iconColor: AppTheme.primaryColor,
+                  title: 'Total Beban Kerja',
+                  value: displayText,
+                  isDarkMode: isDarkMode,
+                  textPrimaryColor: textPrimaryColor,
+                );
+              },
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Consumer<TaskProvider>(
+              builder: (context, taskProvider, child) {
+                final totalCompleted = taskProvider.totalCompletedTasks;
+                return _buildStatCard(
+                  icon: Iconsax.task_square,
+                  iconColor: AppTheme.secondaryColor,
+                  title: 'Total Tugas Selesai',
+                  value: '$totalCompleted tugas',
+                  isDarkMode: isDarkMode,
+                  textPrimaryColor: textPrimaryColor,
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String value,
+    required bool isDarkMode,
+    required Color textPrimaryColor,
+  }) {
+    final cardColor = isDarkMode ? AppTheme.darkCard : Colors.white;
+    final textSecondaryColor = isDarkMode
+        ? AppTheme.darkTextSecondary
+        : AppTheme.textSecondary;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: isDarkMode ? null : AppTheme.cardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            title,
+            style: TextStyle(
+              color: textSecondaryColor,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: TextStyle(
+              color: textPrimaryColor,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompletedTasksCard(bool isDarkMode) {
+    final cardColor = isDarkMode ? AppTheme.darkCard : Colors.white;
+    final textPrimaryColor = isDarkMode
+        ? AppTheme.darkTextPrimary
+        : AppTheme.textPrimary;
+    final periodBgColor = isDarkMode
+        ? AppTheme.darkDivider
+        : Colors.grey.shade100;
+
+    return Consumer<CompletedTasksProvider>(
+      builder: (context, provider, child) {
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: isDarkMode ? null : AppTheme.cardShadow,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header with title
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.secondaryColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Iconsax.task_square,
+                      color: AppTheme.secondaryColor,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Tugas Selesai',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: textPrimaryColor,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+
+              // Date range navigation
+              _buildCompletedDateRangeNavigation(provider, isDarkMode),
+
+              const SizedBox(height: 16),
+
+              // Period selector (below date range)
+              Align(
+                alignment: Alignment.centerRight,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: periodBgColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildCompletedPeriodButton('Daily', isDarkMode),
+                      _buildCompletedPeriodButton(
+                        'Weekly',
+                        isDarkMode,
+                        isVipOnly: true,
+                      ),
+                      _buildCompletedPeriodButton(
+                        'Monthly',
+                        isDarkMode,
+                        isVipOnly: true,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Chart
+              SizedBox(
+                height: 200,
+                child: _buildCompletedChart(provider, isDarkMode),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildCompletedDateRangeNavigation(
+    CompletedTasksProvider provider,
+    bool isDarkMode,
+  ) {
+    final textColor = isDarkMode
+        ? AppTheme.darkTextPrimary
+        : AppTheme.textPrimary;
+
+    String dateRangeText = _getCompletedDateRangeText(provider);
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // Previous button
+        IconButton(
+          icon: Icon(Icons.chevron_left, color: textColor, size: 28),
+          onPressed: () {
+            provider.navigatePrevious();
+          },
+        ),
+        const SizedBox(width: 8),
+        // Date range text
+        Expanded(
+          child: Text(
+            dateRangeText,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: textColor,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        // Next button
+        IconButton(
+          icon: Icon(Icons.chevron_right, color: textColor, size: 28),
+          onPressed: () {
+            provider.navigateNext();
+          },
+        ),
+      ],
+    );
+  }
+
+  String _getCompletedDateRangeText(CompletedTasksProvider provider) {
+    switch (_selectedCompletedPeriod) {
+      case 'Daily':
+        final weekStart = provider.getWeekStartDate();
+        final weekEnd = weekStart.add(const Duration(days: 6));
+
+        final startDay = weekStart.day;
+        final endDay = weekEnd.day;
+        final startMonth = DateFormat('MMM', 'id_ID').format(weekStart);
+        final endMonth = DateFormat('MMM', 'id_ID').format(weekEnd);
+        final year = weekEnd.year;
+
+        if (weekStart.month == weekEnd.month) {
+          return '$startDay - $endDay $endMonth $year';
+        } else {
+          return '$startDay $startMonth - $endDay $endMonth $year';
+        }
+
+      case 'Weekly':
+        final monthDate = provider.getMonthDate();
+        final monthName = DateFormat('MMMM yyyy', 'id_ID').format(monthDate);
+        return monthName;
+
+      case 'Monthly':
+        final year = provider.getYear();
+        return year.toString();
+
+      default:
+        return '';
+    }
+  }
+
+  Widget _buildCompletedChart(
+    CompletedTasksProvider provider,
+    bool isDarkMode,
+  ) {
+    List<int> taskData;
+    bool hasData;
+
+    switch (_selectedCompletedPeriod) {
+      case 'Daily':
+        final weekStart = provider.getWeekStartDate();
+        taskData = provider.getDailyCounts(weekStart);
+        hasData = provider.hasDataForWeek(weekStart);
+        break;
+
+      case 'Weekly':
+        if (!_isVip) {
+          taskData = [0, 0, 0, 0];
+          hasData = false;
+        } else {
+          final monthDate = provider.getMonthDate();
+          taskData = provider.getWeeklyCounts(monthDate);
+          hasData = provider.hasDataForMonth(monthDate);
+        }
+        break;
+
+      case 'Monthly':
+        if (!_isVip) {
+          taskData = List.generate(12, (_) => 0);
+          hasData = false;
+        } else {
+          final year = provider.getYear();
+          taskData = provider.getMonthlyCounts(year);
+          hasData = provider.hasDataForYear(year);
+        }
+        break;
+
+      default:
+        taskData = [];
+        hasData = false;
+    }
+
+    return CompletedTasksChart(
+      period: _selectedCompletedPeriod,
+      isVip: _isVip,
+      taskData: taskData,
+      hasData: hasData,
+    );
+  }
+
+  Widget _buildCompletedPeriodButton(
+    String period,
+    bool isDarkMode, {
+    bool isVipOnly = false,
+  }) {
+    final isSelected = _selectedCompletedPeriod == period;
+    final isLocked = isVipOnly && !_isVip;
+    final textSecondaryColor = isDarkMode
+        ? AppTheme.darkTextSecondary
+        : AppTheme.textSecondary;
+    final textLightColor = isDarkMode
+        ? AppTheme.darkTextLight
+        : AppTheme.textLight;
+
+    return GestureDetector(
+      onTap: isLocked
+          ? () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Fitur ini hanya untuk member VIP'),
+                ),
+              );
+            }
+          : () {
+              setState(() => _selectedCompletedPeriod = period);
+            },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.secondaryColor : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              period,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: isSelected
+                    ? Colors.white
+                    : isLocked
+                    ? textLightColor
+                    : textSecondaryColor,
+              ),
+            ),
+            if (isLocked) ...[
+              const SizedBox(width: 4),
+              Icon(Iconsax.lock, size: 12, color: textLightColor),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

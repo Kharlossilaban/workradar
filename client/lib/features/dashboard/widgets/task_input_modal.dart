@@ -163,7 +163,7 @@ class _TaskInputModalState extends State<TaskInputModal> {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: _getCategoryColor().withOpacity(0.1),
+                        color: _getCategoryColor().withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Row(
@@ -233,7 +233,7 @@ class _TaskInputModalState extends State<TaskInputModal> {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.amber.withOpacity(0.1),
+                        color: Colors.amber.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Row(

@@ -48,7 +48,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   borderRadius: BorderRadius.circular(25),
                   boxShadow: [
                     BoxShadow(
-                      color: AppTheme.vipGold.withOpacity(0.4),
+                      color: AppTheme.vipGold.withValues(alpha: 0.4),
                       blurRadius: 20,
                       offset: const Offset(0, 10),
                     ),
@@ -203,7 +203,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: AppTheme.vipGold.withOpacity(0.1),
+                      color: AppTheme.vipGold.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
@@ -275,7 +275,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: AppTheme.vipGold.withOpacity(0.2),
+                    color: AppTheme.vipGold.withValues(alpha: 0.2),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),

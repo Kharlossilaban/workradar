@@ -72,7 +72,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withOpacity(0.1),
+                      color: AppTheme.primaryColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Icon(
@@ -126,7 +126,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                   decoration: InputDecoration(
                     hintText: '0000',
                     hintStyle: TextStyle(
-                      color: AppTheme.textLight.withOpacity(0.5),
+                      color: AppTheme.textLight.withValues(alpha: 0.5),
                       letterSpacing: 8,
                     ),
                     prefixIcon: const Icon(

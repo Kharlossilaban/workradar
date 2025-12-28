@@ -36,7 +36,10 @@ class CompletedTasksScreen extends StatelessWidget {
         actions: [
           if (groupedTasks.isNotEmpty)
             IconButton(
-              icon: Icon(Iconsax.trash, color: Colors.red.withOpacity(0.8)),
+              icon: Icon(
+                Iconsax.trash,
+                color: Colors.red.withValues(alpha: 0.8),
+              ),
               onPressed: () => _showDeleteAllConfirmation(context),
             ),
         ],
@@ -96,7 +99,7 @@ class CompletedTasksScreen extends StatelessWidget {
     bool isFirst = false,
     bool isLastDate = false,
   }) {
-    final lineColor = AppTheme.primaryColor.withOpacity(0.3);
+    final lineColor = AppTheme.primaryColor.withValues(alpha: 0.3);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -134,7 +137,7 @@ class CompletedTasksScreen extends StatelessWidget {
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: AppTheme.primaryColor.withOpacity(0.3),
+                            color: AppTheme.primaryColor.withValues(alpha: 0.3),
                             blurRadius: 4,
                             spreadRadius: 1,
                           ),
@@ -217,7 +220,7 @@ class CompletedTasksScreen extends StatelessWidget {
               child: Container(
                 width: 3,
                 color: showBottomLine
-                    ? AppTheme.primaryColor.withOpacity(0.3)
+                    ? AppTheme.primaryColor.withValues(alpha: 0.3)
                     : Colors.transparent,
               ),
             ),
@@ -259,14 +262,14 @@ class CompletedTasksScreen extends StatelessWidget {
         color: cardColor,
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: AppTheme.primaryColor.withOpacity(0.08),
+          color: AppTheme.primaryColor.withValues(alpha: 0.08),
           width: 1,
         ),
         boxShadow: isDarkMode
             ? null
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -279,7 +282,7 @@ class CompletedTasksScreen extends StatelessWidget {
             width: 24,
             height: 24,
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withOpacity(0.15),
+              color: AppTheme.primaryColor.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -338,7 +341,7 @@ class CompletedTasksScreen extends StatelessWidget {
               child: Icon(
                 Iconsax.trash,
                 size: 18,
-                color: Colors.red.withOpacity(0.7),
+                color: Colors.red.withValues(alpha: 0.7),
               ),
             ),
           ),

@@ -71,7 +71,7 @@ class ManageCategoryScreen extends StatelessWidget {
           Icon(
             Iconsax.category,
             size: 80,
-            color: AppTheme.primaryColor.withOpacity(0.5),
+            color: AppTheme.primaryColor.withValues(alpha: 0.5),
           ),
           const SizedBox(height: 16),
           Text(
@@ -105,7 +105,7 @@ class ManageCategoryScreen extends StatelessWidget {
             ? null
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),
@@ -117,7 +117,7 @@ class ManageCategoryScreen extends StatelessWidget {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: _getCategoryColor(category.name).withOpacity(0.15),
+            color: _getCategoryColor(category.name).withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(
@@ -148,7 +148,7 @@ class ManageCategoryScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AppTheme.warningColor.withOpacity(0.2),
+                  color: AppTheme.warningColor.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
@@ -169,7 +169,7 @@ class ManageCategoryScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withOpacity(0.1),
+                color: AppTheme.primaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
@@ -279,7 +279,7 @@ class ManageCategoryScreen extends StatelessWidget {
         color: isDarkMode ? AppTheme.darkSurface : Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -2),
           ),
@@ -296,7 +296,7 @@ class ManageCategoryScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppTheme.borderRadiusMedium),
               boxShadow: [
                 BoxShadow(
-                  color: AppTheme.primaryColor.withOpacity(0.3),
+                  color: AppTheme.primaryColor.withValues(alpha: 0.3),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -308,7 +308,7 @@ class ManageCategoryScreen extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Iconsax.add, color: Colors.white, size: 20),

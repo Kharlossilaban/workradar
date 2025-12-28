@@ -125,7 +125,7 @@ class TaskCard extends StatelessWidget {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: _categoryColor.withOpacity(0.1),
+                                color: _categoryColor.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
@@ -144,7 +144,9 @@ class TaskCard extends StatelessWidget {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: _getDifficultyColor().withOpacity(0.1),
+                                color: _getDifficultyColor().withValues(
+                                  alpha: 0.1,
+                                ),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(

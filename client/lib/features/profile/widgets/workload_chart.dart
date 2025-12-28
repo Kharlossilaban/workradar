@@ -138,7 +138,7 @@ class WorkloadChart extends StatelessWidget {
               show: true,
               toY: _getMaxY(),
               color: isDarkMode
-                  ? AppTheme.darkDivider.withOpacity(0.3)
+                  ? AppTheme.darkDivider.withValues(alpha: 0.3)
                   : Colors.grey.shade100,
             ),
           ),
@@ -161,7 +161,7 @@ class WorkloadChart extends StatelessWidget {
       return Colors.green;
     } else {
       // Default color if very light workload or according to user preference
-      return AppTheme.primaryColor.withOpacity(0.6);
+      return AppTheme.primaryColor.withValues(alpha: 0.6);
     }
   }
 

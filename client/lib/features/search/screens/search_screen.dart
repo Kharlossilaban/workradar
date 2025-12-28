@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/task_provider.dart';
 import '../../../core/models/task.dart';
+import '../../profile/providers/completed_tasks_provider.dart';
 import '../../../core/widgets/task_card.dart';
 import '../../tasks/screens/edit_task_screen.dart';
 
@@ -63,7 +64,16 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   void _onTaskComplete(Task task) {
-    context.read<TaskProvider>().toggleTaskCompletion(task.id);
+    final completedTasksProvider = context.read<CompletedTasksProvider>();
+
+    context.read<TaskProvider>().toggleTaskCompletion(
+      task.id,
+      onCompleted: (_) {
+        // Record completed task in completed tasks provider
+        final date = task.deadline ?? DateTime.now();
+        completedTasksProvider.recordTaskCompletion(date);
+      },
+    );
   }
 
   @override
@@ -98,7 +108,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     ? null
                     : [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withValues(alpha: 0.05),
                           blurRadius: 10,
                           offset: const Offset(0, 2),
                         ),
@@ -167,13 +177,13 @@ class _SearchScreenState extends State<SearchScreen> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withOpacity(0.1),
+              color: AppTheme.primaryColor.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Iconsax.search_normal,
               size: 48,
-              color: AppTheme.primaryColor.withOpacity(0.7),
+              color: AppTheme.primaryColor.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: 24),
@@ -197,13 +207,13 @@ class _SearchScreenState extends State<SearchScreen> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: AppTheme.warningColor.withOpacity(0.1),
+              color: AppTheme.warningColor.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Iconsax.search_status,
               size: 48,
-              color: AppTheme.warningColor.withOpacity(0.7),
+              color: AppTheme.warningColor.withValues(alpha: 0.7),
             ),
           ),
           const SizedBox(height: 24),

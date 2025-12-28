@@ -6,6 +6,7 @@ import 'core/providers/task_provider.dart';
 import 'core/providers/theme_provider.dart';
 import 'core/providers/category_provider.dart';
 import 'features/profile/providers/workload_provider.dart';
+import 'features/profile/providers/completed_tasks_provider.dart';
 import 'features/profile/providers/profile_provider.dart';
 import 'features/auth/screens/login_screen.dart';
 
@@ -29,6 +30,7 @@ class WorkradarApp extends StatelessWidget {
         ChangeNotifierProvider(create: (context) => ThemeProvider()),
         ChangeNotifierProvider(create: (context) => CategoryProvider()),
         ChangeNotifierProvider(create: (context) => WorkloadProvider()),
+        ChangeNotifierProvider(create: (context) => CompletedTasksProvider()),
         ChangeNotifierProvider(create: (context) => ProfileProvider()),
       ],
       child: Consumer<ThemeProvider>(

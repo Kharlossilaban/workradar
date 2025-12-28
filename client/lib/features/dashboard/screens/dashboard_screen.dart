@@ -7,6 +7,7 @@ import '../../../core/providers/task_provider.dart';
 import '../../../core/providers/theme_provider.dart';
 import '../../../core/providers/category_provider.dart';
 import '../../profile/providers/workload_provider.dart';
+import '../../profile/providers/completed_tasks_provider.dart';
 import '../../profile/providers/profile_provider.dart';
 import '../../profile/screens/profile_screen.dart';
 import '../../../core/widgets/task_card.dart';
@@ -91,6 +92,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _onTaskComplete(Task task) {
     final workloadProvider = context.read<WorkloadProvider>();
+    final completedTasksProvider = context.read<CompletedTasksProvider>();
+
     context.read<TaskProvider>().toggleTaskCompletion(
       task.id,
       onCompleted: (_) {
@@ -100,6 +103,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           date,
           duration: task.durationMinutes ?? 0,
         );
+        // Record completed task in completed tasks provider
+        completedTasksProvider.recordTaskCompletion(date);
       },
     );
   }
@@ -507,7 +512,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             width: 240,
             height: 240,
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withOpacity(0.05),
+              color: AppTheme.primaryColor.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(24),
             ),
             child: ClipRRect(
@@ -520,14 +525,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         return Icon(
                           Iconsax.task_square,
                           size: 80,
-                          color: AppTheme.primaryColor.withOpacity(0.5),
+                          color: AppTheme.primaryColor.withValues(alpha: 0.5),
                         );
                       },
                     )
                   : Icon(
                       Iconsax.task_square,
                       size: 80,
-                      color: AppTheme.primaryColor.withOpacity(0.5),
+                      color: AppTheme.primaryColor.withValues(alpha: 0.5),
                     ),
             ),
           ),
@@ -598,7 +603,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withOpacity(0.1),
+                color: AppTheme.primaryColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(

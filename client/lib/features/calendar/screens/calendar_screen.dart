@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/task_provider.dart';
 import '../../profile/providers/workload_provider.dart';
+import '../../profile/providers/completed_tasks_provider.dart';
 import '../../profile/providers/profile_provider.dart';
 import '../../profile/screens/profile_screen.dart';
 import '../../../core/widgets/task_card.dart';
@@ -484,6 +485,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         onComplete: () {
                           final workloadProvider = context
                               .read<WorkloadProvider>();
+                          final completedTasksProvider = context
+                              .read<CompletedTasksProvider>();
+
                           context.read<TaskProvider>().toggleTaskCompletion(
                             task.id,
                             onCompleted: (_) {
@@ -493,6 +497,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                 date,
                                 duration: task.durationMinutes ?? 0,
                               );
+                              // Record completed task in completed tasks provider
+                              completedTasksProvider.recordTaskCompletion(date);
                             },
                           );
                         },
