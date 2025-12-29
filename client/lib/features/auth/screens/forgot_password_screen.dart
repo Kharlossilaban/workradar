@@ -47,14 +47,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Iconsax.arrow_left, color: AppTheme.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -127,8 +120,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     if (value == null || value.isEmpty) {
                       return 'Gmail tidak boleh kosong';
                     }
-                    if (!value.contains('@')) {
-                      return 'Gmail tidak valid';
+                    // Validasi format Gmail
+                    if (!value.toLowerCase().endsWith('@gmail.com')) {
+                      return 'Format Gmail salah! Harus menggunakan @gmail.com';
+                    }
+                    // Validasi format email dasar
+                    final emailRegex = RegExp(r'^[\w-\.]+@gmail\.com$');
+                    if (!emailRegex.hasMatch(value.toLowerCase())) {
+                      return 'Format Gmail tidak valid';
                     }
                     return null;
                   },
@@ -141,22 +140,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   text: 'Kirim Kode Verifikasi',
                   onPressed: _handleForgotPassword,
                   isLoading: _isLoading,
-                ),
-
-                const SizedBox(height: 24),
-
-                // Back to Login
-                Center(
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: const Text(
-                      'Kembali ke Login',
-                      style: TextStyle(
-                        color: AppTheme.primaryColor,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
                 ),
               ],
             ),

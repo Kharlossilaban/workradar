@@ -48,14 +48,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Iconsax.arrow_left, color: AppTheme.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
