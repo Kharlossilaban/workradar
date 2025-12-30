@@ -24,7 +24,10 @@ func (r *SubscriptionRepository) Create(subscription *models.Subscription) error
 func (r *SubscriptionRepository) FindByID(id string) (*models.Subscription, error) {
 	var subscription models.Subscription
 	err := r.db.First(&subscription, "id = ?", id).Error
-	return &subscription, err
+	if err != nil {
+		return nil, err
+	}
+	return &subscription, nil
 }
 
 // FindByUserID mencari semua subscription user (history)
@@ -39,7 +42,10 @@ func (r *SubscriptionRepository) FindActiveByUserID(userID string) (*models.Subs
 	var subscription models.Subscription
 	err := r.db.Where("user_id = ? AND is_active = ? AND end_date > ?", userID, true, time.Now()).
 		First(&subscription).Error
-	return &subscription, err
+	if err != nil {
+		return nil, err
+	}
+	return &subscription, nil
 }
 
 // Update memperbarui subscription

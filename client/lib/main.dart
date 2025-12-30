@@ -8,7 +8,7 @@ import 'core/providers/category_provider.dart';
 import 'features/profile/providers/workload_provider.dart';
 import 'features/profile/providers/completed_tasks_provider.dart';
 import 'features/profile/providers/profile_provider.dart';
-import 'features/auth/screens/login_screen.dart';
+import 'features/auth/screens/auth_check_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,7 +41,7 @@ class WorkradarApp extends StatelessWidget {
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             themeMode: themeProvider.themeMode,
-            home: const LoginScreen(),
+            home: const AuthCheckScreen(),
           );
         },
       ),

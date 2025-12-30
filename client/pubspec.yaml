@@ -20,6 +20,11 @@ dependencies:
   
   # HTTP & API
   http: ^1.2.2
+  dio: ^5.4.0
+  
+  # Security
+  flutter_secure_storage: ^9.0.0
+  local_auth: ^2.1.7
   
   # Auth
   google_sign_in: ^6.2.2

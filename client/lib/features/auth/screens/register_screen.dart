@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/custom_button.dart';
+import '../../../core/services/auth_api_service.dart';
+import '../../../core/network/api_exception.dart';
 import 'login_screen.dart';
+import '../../main/screens/main_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -30,27 +33,57 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  final _authApiService = AuthApiService();
+
   void _handleRegister() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 
-      // Simulate register delay (will be replaced with actual API call)
-      await Future.delayed(const Duration(seconds: 1));
-
-      setState(() => _isLoading = false);
-
-      if (mounted) {
-        // Show success message and navigate to login
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Registrasi berhasil! Silakan login.'),
-            backgroundColor: AppTheme.successColor,
-          ),
+      try {
+        // Call API register
+        await _authApiService.register(
+          email: _gmailController.text.trim(),
+          username: _usernameController.text.trim(),
+          password: _passwordController.text,
         );
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
-        );
+
+        setState(() => _isLoading = false);
+
+        if (mounted) {
+          // Navigate to Main Screen (auto-login after register)
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const MainScreen()),
+          );
+
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Registrasi berhasil! Selamat datang!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } on ApiException catch (e) {
+        setState(() => _isLoading = false);
+
+        if (mounted) {
+          // Show error message from API
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+          );
+        }
+      } catch (e) {
+        setState(() => _isLoading = false);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Terjadi kesalahan. Coba lagi.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }

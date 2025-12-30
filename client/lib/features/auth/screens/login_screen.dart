@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/custom_button.dart';
+import '../../../core/services/auth_api_service.dart';
+import '../../../core/network/api_exception.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 import '../../main/screens/main_screen.dart';
@@ -27,20 +29,56 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  final _authApiService = AuthApiService();
+
   void _handleLogin() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
 
-      // Simulate login delay (will be replaced with actual API call)
-      await Future.delayed(const Duration(seconds: 1));
-
-      setState(() => _isLoading = false);
-
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const MainScreen()),
+      try {
+        // Call API login
+        await _authApiService.login(
+          email: _gmailController.text.trim(),
+          password: _passwordController.text,
         );
+
+        setState(() => _isLoading = false);
+
+        if (mounted) {
+          // Navigate to Main Screen
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const MainScreen()),
+          );
+
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Login berhasil!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } on ApiException catch (e) {
+        setState(() => _isLoading = false);
+
+        if (mounted) {
+          // Show error message from API
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+          );
+        }
+      } catch (e) {
+        setState(() => _isLoading = false);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Terjadi kesalahan. Coba lagi.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }

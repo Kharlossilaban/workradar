@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/workradar/server/internal/services"
 	"github.com/workradar/server/pkg/utils"
 )
 
@@ -32,6 +33,21 @@ func AuthMiddleware() fiber.Handler {
 		if err != nil {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"error": "Invalid or expired token",
+			})
+		}
+
+		// Check if token is access token (not refresh token)
+		if claims.Type != "access" && claims.Type != "" {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "Invalid token type",
+			})
+		}
+
+		// Check if token is blacklisted (logged out)
+		blacklistService := services.GetTokenBlacklistService()
+		if blacklistService.IsBlacklisted(claims.ID) {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"error": "Token has been revoked",
 			})
 		}
 

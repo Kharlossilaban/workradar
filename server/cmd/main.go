@@ -35,10 +35,18 @@ func main() {
 	// Middleware
 	app.Use(recover.New())
 	app.Use(logger.New())
+
+	// Security middlewares
+	app.Use(middleware.SecurityHeadersMiddleware())
+	app.Use(middleware.RequestIDMiddleware())
+	app.Use(middleware.RateLimitMiddleware())
+
+	// CORS
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     config.AppConfig.AllowedOrigins,
 		AllowMethods:     "GET,POST,PUT,DELETE,PATCH",
-		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization, X-Request-ID",
+		ExposeHeaders:    "X-Request-ID",
 		AllowCredentials: true,
 	}))
 
@@ -84,6 +92,8 @@ func main() {
 	auth.Post("/login", authHandler.Login)
 	auth.Post("/forgot-password", authHandler.ForgotPassword)
 	auth.Post("/reset-password", authHandler.ResetPassword)
+	auth.Post("/refresh", authHandler.RefreshToken)
+	auth.Post("/logout", authHandler.Logout)
 
 	// Protected routes - Profile
 	profile := api.Group("/profile", middleware.AuthMiddleware())

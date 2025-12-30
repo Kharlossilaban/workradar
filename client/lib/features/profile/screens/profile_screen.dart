@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/task_provider.dart';
+import '../../../core/services/auth_api_service.dart';
 import '../widgets/workload_chart.dart';
 import '../widgets/completed_tasks_chart.dart';
 import '../providers/workload_provider.dart';
@@ -11,6 +12,7 @@ import '../providers/completed_tasks_provider.dart';
 import '../providers/profile_provider.dart';
 import 'profile_detail_screen.dart';
 import '../../subscription/screens/subscription_screen.dart';
+import '../../auth/screens/login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -57,6 +59,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _buildWorkloadCard(isDarkMode),
               const SizedBox(height: 20),
               _buildCompletedTasksCard(isDarkMode),
+              const SizedBox(height: 20),
+              _buildLogoutButton(isDarkMode),
               const SizedBox(height: 30),
             ],
           ),
@@ -1014,6 +1018,70 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Icon(Iconsax.lock, size: 12, color: textLightColor),
             ],
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogoutButton(bool isDarkMode) {
+    final cardColor = isDarkMode ? AppTheme.darkCard : Colors.white;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: SizedBox(
+        width: double.infinity,
+        child: OutlinedButton.icon(
+          onPressed: () async {
+            // Show confirmation dialog
+            final shouldLogout = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Logout'),
+                content: const Text('Apakah Anda yakin ingin keluar?'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Batal'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    style: TextButton.styleFrom(foregroundColor: Colors.red),
+                    child: const Text('Keluar'),
+                  ),
+                ],
+              ),
+            );
+
+            if (shouldLogout == true && mounted) {
+              // Call logout API
+              await AuthApiService().logout();
+
+              if (mounted) {
+                // Navigate to login screen
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  (route) => false,
+                );
+              }
+            }
+          },
+          icon: const Icon(Iconsax.logout, color: Colors.red),
+          label: const Text(
+            'Logout',
+            style: TextStyle(
+              color: Colors.red,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            side: const BorderSide(color: Colors.red, width: 1.5),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            backgroundColor: cardColor,
+          ),
         ),
       ),
     );
