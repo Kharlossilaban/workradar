@@ -1,0 +1,45 @@
+# Firebase credentials
+server/workradar-firebase.json
+*.json
+!client/assets/**/*.json
+
+# Executable files
+*.exe
+*.exe~
+
+# Environment variables
+.env
+.env.local
+
+# Dependencies
+node_modules/
+vendor/
+
+# Build outputs
+build/
+dist/
+*.o
+*.so
+*.dll
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go
+*.test
+*.out
+
+# Flutter
+**/build/
+**/.dart_tool/
+**/.flutter-plugins
+**/.flutter-plugins-dependencies
+**/.packages
+**/pubspec.lock

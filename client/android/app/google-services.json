@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "307825008036",
+    "project_id": "workradar-1614a",
+    "storage_bucket": "workradar-1614a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:307825008036:android:2d002efe7503fe0844b531",
+        "android_client_info": {
+          "package_name": "com.pbl.workradar"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBa5G7hOs493GtRrNHNWvB1YVx7QZDre7w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

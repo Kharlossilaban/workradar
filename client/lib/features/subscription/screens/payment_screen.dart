@@ -1,0 +1,555 @@
+import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/services/midtrans_service.dart';
+import '../../../core/models/payment.dart';
+import '../../messaging/providers/messaging_provider.dart';
+import 'package:provider/provider.dart';
+
+class PaymentScreen extends StatefulWidget {
+  final String userId;
+  final String userEmail;
+  final String userName;
+  final String selectedPlan; // 'monthly' or 'yearly'
+
+  const PaymentScreen({
+    super.key,
+    required this.userId,
+    required this.userEmail,
+    required this.userName,
+    this.selectedPlan = 'monthly',
+  });
+
+  @override
+  State<PaymentScreen> createState() => _PaymentScreenState();
+}
+
+class _PaymentScreenState extends State<PaymentScreen> {
+  final MidtransService _midtransService = MidtransService();
+  bool _isLoading = false;
+  Payment? _currentPayment;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final bgColor = isDarkMode ? AppTheme.darkBackground : Colors.grey.shade50;
+
+    return Scaffold(
+      backgroundColor: bgColor,
+      appBar: AppBar(
+        title: const Text('VIP Subscription'),
+        centerTitle: true,
+        backgroundColor: isDarkMode ? AppTheme.darkCard : Colors.white,
+        elevation: 0,
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // VIP Benefits Card
+              _buildVipBenefitsCard(isDarkMode),
+
+              const SizedBox(height: 24),
+
+              // Pricing Card
+              _buildPricingCard(isDarkMode),
+
+              const SizedBox(height: 24),
+
+              // Payment Button
+              _buildPaymentButton(isDarkMode),
+
+              const SizedBox(height: 16),
+
+              // Current Payment Status (if any)
+              if (_currentPayment != null) ...[
+                _buildPaymentStatus(isDarkMode),
+                const SizedBox(height: 16),
+              ],
+
+              // Terms and Info
+              _buildTermsInfo(isDarkMode),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVipBenefitsCard(bool isDarkMode) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: AppTheme.vipGradient,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.vipGold.withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          const Icon(Iconsax.crown_15, color: Colors.white, size: 48),
+          const SizedBox(height: 16),
+          const Text(
+            'Upgrade ke VIP',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Nikmati Semua Fitur Premium',
+            style: TextStyle(color: Colors.white70, fontSize: 14),
+          ),
+          const SizedBox(height: 24),
+          ..._buildBenefitsList(),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _buildBenefitsList() {
+    final benefits = [
+      {'icon': Iconsax.chart_1, 'text': 'Grafik Workload Weekly & Monthly'},
+      {'icon': Iconsax.cloud_sunny, 'text': 'Prakiraan Cuaca Real-time'},
+      {'icon': Iconsax.task_square, 'text': 'Statistik Lengkap Task'},
+      {'icon': Iconsax.trend_up, 'text': 'Analisis Produktivitas'},
+      {'icon': Iconsax.notification_bing, 'text': 'Notifikasi Premium'},
+      {'icon': Iconsax.shield_tick, 'text': 'Data Backup Otomatis'},
+    ];
+
+    return benefits.map((benefit) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                benefit['icon'] as IconData,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                benefit['text'] as String,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            const Icon(Icons.check_circle, color: Colors.white, size: 20),
+          ],
+        ),
+      );
+    }).toList();
+  }
+
+  Widget _buildPricingCard(bool isDarkMode) {
+    final cardColor = isDarkMode ? AppTheme.darkCard : Colors.white;
+    final textPrimaryColor = isDarkMode
+        ? AppTheme.darkTextPrimary
+        : AppTheme.textPrimary;
+    final textSecondaryColor = isDarkMode
+        ? AppTheme.darkTextSecondary
+        : AppTheme.textSecondary;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppTheme.vipGold.withValues(alpha: 0.3),
+          width: 2,
+        ),
+        boxShadow: isDarkMode ? null : AppTheme.cardShadow,
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                widget.selectedPlan == 'yearly' ? 'VIP Annual' : 'VIP Monthly',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: textPrimaryColor,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.vipGold.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  widget.selectedPlan == 'yearly' ? 'TERBAIK' : 'POPULER',
+                  style: const TextStyle(
+                    color: AppTheme.vipGold,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Rp',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: textPrimaryColor,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                widget.selectedPlan == 'yearly' ? '100.000' : '15.000',
+                style: TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.bold,
+                  color: textPrimaryColor,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(
+                  widget.selectedPlan == 'yearly' ? '/ tahun' : '/ bulan',
+                  style: TextStyle(fontSize: 14, color: textSecondaryColor),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Pembayaran dapat dilakukan via Transfer Bank, E-Wallet, atau Kartu Kredit',
+            style: TextStyle(
+              fontSize: 13,
+              color: textSecondaryColor,
+              height: 1.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentButton(bool isDarkMode) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : _handlePayment,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppTheme.vipGold,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 4,
+        ),
+        child: _isLoading
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 2,
+                ),
+              )
+            : const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Iconsax.wallet_3, size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    'Lanjutkan Pembayaran',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+
+  Widget _buildPaymentStatus(bool isDarkMode) {
+    final cardColor = isDarkMode ? AppTheme.darkCard : Colors.white;
+    final textPrimaryColor = isDarkMode
+        ? AppTheme.darkTextPrimary
+        : AppTheme.textPrimary;
+
+    Color statusColor;
+    IconData statusIcon;
+    String statusText;
+
+    switch (_currentPayment!.status) {
+      case PaymentStatus.pending:
+        statusColor = Colors.orange;
+        statusIcon = Iconsax.clock;
+        statusText = 'Menunggu Pembayaran';
+        break;
+      case PaymentStatus.success:
+        statusColor = Colors.green;
+        statusIcon = Iconsax.tick_circle;
+        statusText = 'Pembayaran Berhasil';
+        break;
+      case PaymentStatus.failed:
+        statusColor = Colors.red;
+        statusIcon = Iconsax.close_circle;
+        statusText = 'Pembayaran Gagal';
+        break;
+      case PaymentStatus.expired:
+        statusColor = Colors.grey;
+        statusIcon = Iconsax.timer;
+        statusText = 'Pembayaran Kadaluarsa';
+        break;
+      case PaymentStatus.cancelled:
+        statusColor = Colors.grey;
+        statusIcon = Iconsax.close_square;
+        statusText = 'Pembayaran Dibatalkan';
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(statusIcon, color: statusColor, size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  statusText,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: textPrimaryColor,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Order ID: ${_currentPayment!.orderId}',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+          if (_currentPayment!.isPending)
+            TextButton(
+              onPressed: _checkPaymentStatus,
+              child: const Text('Refresh'),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTermsInfo(bool isDarkMode) {
+    final textSecondaryColor = isDarkMode
+        ? AppTheme.darkTextSecondary
+        : AppTheme.textSecondary;
+
+    return Column(
+      children: [
+        const Divider(),
+        const SizedBox(height: 8),
+        Text(
+          'Dengan melanjutkan, Anda menyetujui Syarat & Ketentuan serta Kebijakan Privasi kami.',
+          style: TextStyle(
+            fontSize: 12,
+            color: textSecondaryColor,
+            height: 1.5,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '🔒 Pembayaran aman & terenkripsi via Midtrans',
+          style: TextStyle(
+            fontSize: 12,
+            color: textSecondaryColor,
+            fontWeight: FontWeight.w600,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  Future<void> _handlePayment() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final payment = await _midtransService.createPayment(
+        userId: widget.userId,
+        userEmail: widget.userEmail,
+        userName: widget.userName,
+        plan: SubscriptionPlan.vip,
+      );
+
+      setState(() {
+        _currentPayment = payment;
+        _isLoading = false;
+      });
+
+      // Open Midtrans payment page
+      if (payment.redirectUrl != null) {
+        final url = Uri.parse(payment.redirectUrl!);
+        if (await canLaunchUrl(url)) {
+          await launchUrl(url, mode: LaunchMode.externalApplication);
+
+          // Show dialog to check status after payment
+          if (mounted) {
+            _showPaymentPendingDialog();
+          }
+        }
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal membuat pembayaran: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showPaymentPendingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Menunggu Pembayaran'),
+        content: const Text(
+          'Setelah menyelesaikan pembayaran di halaman Midtrans, '
+          'kembali ke aplikasi dan tekan "Cek Status" untuk memverifikasi.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text('Nanti'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _checkPaymentStatus();
+            },
+            child: const Text('Cek Status'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _checkPaymentStatus() async {
+    if (_currentPayment == null) return;
+
+    try {
+      final updatedPayment = await _midtransService.checkPaymentStatus(
+        orderId: _currentPayment!.orderId,
+      );
+
+      setState(() {
+        _currentPayment = updatedPayment;
+      });
+
+      if (updatedPayment.isSuccess) {
+        // Send success message
+        if (mounted) {
+          context.read<MessagingProvider>().sendPaymentSuccessMessage(
+            widget.userId,
+            updatedPayment.amount,
+          );
+          context.read<MessagingProvider>().sendVipWelcomeMessage(
+            widget.userId,
+          );
+        }
+
+        // Show success dialog
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green, size: 28),
+                  SizedBox(width: 8),
+                  Text('Pembayaran Berhasil!'),
+                ],
+              ),
+              content: const Text(
+                'Selamat! Status VIP Anda sekarang aktif. '
+                'Nikmati semua fitur premium!',
+              ),
+              actions: [
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Close dialog
+                    Navigator.pop(context); // Return to previous screen
+                  },
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
+      } else if (updatedPayment.isFailed) {
+        // Send failure message
+        if (mounted) {
+          context.read<MessagingProvider>().sendPaymentFailedMessage(
+            widget.userId,
+            'Pembayaran ditolak oleh sistem',
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengecek status: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+}

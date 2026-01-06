@@ -1,0 +1,263 @@
+package services
+
+import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"time"
+)
+
+type WeatherService struct {
+	apiKey  string
+	baseURL string
+	client  *http.Client
+}
+
+// Weather data structures
+type CurrentWeather struct {
+	Temperature float64 `json:"temperature"`
+	FeelsLike   float64 `json:"feels_like"`
+	TempMin     float64 `json:"temp_min"`
+	TempMax     float64 `json:"temp_max"`
+	Pressure    int     `json:"pressure"`
+	Humidity    int     `json:"humidity"`
+	Description string  `json:"description"`
+	Icon        string  `json:"icon"`
+	WindSpeed   float64 `json:"wind_speed"`
+	Clouds      int     `json:"clouds"`
+	CityName    string  `json:"city_name"`
+	Country     string  `json:"country"`
+	Sunrise     int64   `json:"sunrise"`
+	Sunset      int64   `json:"sunset"`
+}
+
+type ForecastDay struct {
+	Date        string  `json:"date"`
+	Temperature float64 `json:"temperature"`
+	TempMin     float64 `json:"temp_min"`
+	TempMax     float64 `json:"temp_max"`
+	Description string  `json:"description"`
+	Icon        string  `json:"icon"`
+	Humidity    int     `json:"humidity"`
+	WindSpeed   float64 `json:"wind_speed"`
+	Clouds      int     `json:"clouds"`
+}
+
+type WeatherForecast struct {
+	CityName string        `json:"city_name"`
+	Country  string        `json:"country"`
+	Days     []ForecastDay `json:"days"`
+}
+
+// OpenWeatherMap API response structures
+type owmCurrentResponse struct {
+	Main struct {
+		Temp      float64 `json:"temp"`
+		FeelsLike float64 `json:"feels_like"`
+		TempMin   float64 `json:"temp_min"`
+		TempMax   float64 `json:"temp_max"`
+		Pressure  int     `json:"pressure"`
+		Humidity  int     `json:"humidity"`
+	} `json:"main"`
+	Weather []struct {
+		Description string `json:"description"`
+		Icon        string `json:"icon"`
+	} `json:"weather"`
+	Wind struct {
+		Speed float64 `json:"speed"`
+	} `json:"wind"`
+	Clouds struct {
+		All int `json:"all"`
+	} `json:"clouds"`
+	Sys struct {
+		Country string `json:"country"`
+		Sunrise int64  `json:"sunrise"`
+		Sunset  int64  `json:"sunset"`
+	} `json:"sys"`
+	Name string `json:"name"`
+}
+
+type owmForecastResponse struct {
+	List []struct {
+		Dt   int64 `json:"dt"`
+		Main struct {
+			Temp     float64 `json:"temp"`
+			TempMin  float64 `json:"temp_min"`
+			TempMax  float64 `json:"temp_max"`
+			Humidity int     `json:"humidity"`
+		} `json:"main"`
+		Weather []struct {
+			Description string `json:"description"`
+			Icon        string `json:"icon"`
+		} `json:"weather"`
+		Wind struct {
+			Speed float64 `json:"speed"`
+		} `json:"wind"`
+		Clouds struct {
+			All int `json:"all"`
+		} `json:"clouds"`
+	} `json:"list"`
+	City struct {
+		Name    string `json:"name"`
+		Country string `json:"country"`
+	} `json:"city"`
+}
+
+func NewWeatherService(apiKey string) *WeatherService {
+	return &WeatherService{
+		apiKey:  apiKey,
+		baseURL: "https://api.openweathermap.org/data/2.5",
+		client: &http.Client{
+			Timeout: 10 * time.Second,
+		},
+	}
+}
+
+// GetWeatherByCity fetches current weather for a city
+func (s *WeatherService) GetWeatherByCity(city string) (*CurrentWeather, error) {
+	if s.apiKey == "" {
+		return nil, fmt.Errorf("weather API key not configured")
+	}
+
+	// Build URL
+	endpoint := fmt.Sprintf("%s/weather", s.baseURL)
+	params := url.Values{}
+	params.Add("q", city)
+	params.Add("appid", s.apiKey)
+	params.Add("units", "metric") // Celsius
+
+	fullURL := fmt.Sprintf("%s?%s", endpoint, params.Encode())
+
+	// Make request
+	resp, err := s.client.Get(fullURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch weather: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("weather API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Parse response
+	var owmResp owmCurrentResponse
+	if err := json.NewDecoder(resp.Body).Decode(&owmResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	// Map to our structure
+	weather := &CurrentWeather{
+		Temperature: owmResp.Main.Temp,
+		FeelsLike:   owmResp.Main.FeelsLike,
+		TempMin:     owmResp.Main.TempMin,
+		TempMax:     owmResp.Main.TempMax,
+		Pressure:    owmResp.Main.Pressure,
+		Humidity:    owmResp.Main.Humidity,
+		WindSpeed:   owmResp.Wind.Speed,
+		Clouds:      owmResp.Clouds.All,
+		CityName:    owmResp.Name,
+		Country:     owmResp.Sys.Country,
+		Sunrise:     owmResp.Sys.Sunrise,
+		Sunset:      owmResp.Sys.Sunset,
+	}
+
+	if len(owmResp.Weather) > 0 {
+		weather.Description = owmResp.Weather[0].Description
+		weather.Icon = owmResp.Weather[0].Icon
+	}
+
+	return weather, nil
+}
+
+// GetForecast fetches 5-day weather forecast for a city
+func (s *WeatherService) GetForecast(city string, days int) (*WeatherForecast, error) {
+	if s.apiKey == "" {
+		return nil, fmt.Errorf("weather API key not configured")
+	}
+
+	if days < 1 || days > 5 {
+		days = 5 // Default to 5 days
+	}
+
+	// Build URL
+	endpoint := fmt.Sprintf("%s/forecast", s.baseURL)
+	params := url.Values{}
+	params.Add("q", city)
+	params.Add("appid", s.apiKey)
+	params.Add("units", "metric")                // Celsius
+	params.Add("cnt", fmt.Sprintf("%d", days*8)) // 8 data points per day (3-hour intervals)
+
+	fullURL := fmt.Sprintf("%s?%s", endpoint, params.Encode())
+
+	// Make request
+	resp, err := s.client.Get(fullURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch forecast: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("weather API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Parse response
+	var owmResp owmForecastResponse
+	if err := json.NewDecoder(resp.Body).Decode(&owmResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	// Group by day and calculate daily averages
+	forecast := &WeatherForecast{
+		CityName: owmResp.City.Name,
+		Country:  owmResp.City.Country,
+		Days:     make([]ForecastDay, 0),
+	}
+
+	dayMap := make(map[string]*ForecastDay)
+	dayCount := make(map[string]int)
+
+	for _, item := range owmResp.List {
+		date := time.Unix(item.Dt, 0).Format("2006-01-02")
+
+		if _, exists := dayMap[date]; !exists {
+			dayMap[date] = &ForecastDay{
+				Date: date,
+			}
+			dayCount[date] = 0
+		}
+
+		day := dayMap[date]
+		day.Temperature += item.Main.Temp
+		day.TempMin += item.Main.TempMin
+		day.TempMax += item.Main.TempMax
+		day.Humidity += item.Main.Humidity
+		day.WindSpeed += item.Wind.Speed
+		day.Clouds += item.Clouds.All
+
+		if len(item.Weather) > 0 && day.Description == "" {
+			day.Description = item.Weather[0].Description
+			day.Icon = item.Weather[0].Icon
+		}
+
+		dayCount[date]++
+	}
+
+	// Calculate averages and add to result
+	for date, day := range dayMap {
+		count := float64(dayCount[date])
+		day.Temperature /= count
+		day.TempMin /= count
+		day.TempMax /= count
+		day.Humidity = int(float64(day.Humidity) / count)
+		day.WindSpeed /= count
+		day.Clouds = int(float64(day.Clouds) / count)
+
+		forecast.Days = append(forecast.Days, *day)
+	}
+
+	return forecast, nil
+}
