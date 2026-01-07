@@ -1,0 +1,49 @@
+# Git
+.git
+.gitignore
+
+# Environment files
+.env
+.env.*
+!.env.example
+!.env.production.example
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test files
+*_test.go
+test/
+coverage.out
+
+# Documentation (keep README)
+*.md
+!README.md
+!SETUP.md
+
+# Scripts for local development
+scripts/
+test_*.ps1
+
+# Temp files
+tmp/
+*.log
+
+# Firebase keys (will be set via env vars in production)
+# workradar-firebase.json  <- uncomment jika pakai env var
+google-services.json
+GoogleService-Info.plist
+com.workradar.workradar.json
+
+# Monitoring configs (local)
+monitoring/

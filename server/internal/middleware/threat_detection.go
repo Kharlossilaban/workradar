@@ -44,11 +44,21 @@ func DefaultThreatDetectionConfig() ThreatDetectionConfig {
 	}
 }
 
+// isLocalhost checks if IP is localhost (for development/testing)
+func isLocalhost(ip string) bool {
+	return ip == "127.0.0.1" || ip == "::1" || ip == "localhost"
+}
+
 // ThreatDetectionMiddleware creates middleware for detecting and preventing threats
 func ThreatDetectionMiddleware(auditService *services.AuditService, config ThreatDetectionConfig) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		ip := c.IP()
 		userAgent := c.Get("User-Agent")
+
+		// Skip all security checks for localhost (development/testing)
+		if isLocalhost(ip) {
+			return c.Next()
+		}
 
 		// Check if IP is blocked
 		blocked, err := auditService.IsIPBlocked(ip)
@@ -102,6 +112,11 @@ func BruteForceProtectionMiddleware(auditService *services.AuditService, config 
 	return func(c *fiber.Ctx) error {
 		ip := c.IP()
 		_ = c.Get("User-Agent") // Reserved for future logging
+
+		// Skip security checks for localhost (development/testing)
+		if isLocalhost(ip) {
+			return c.Next()
+		}
 
 		// Check if IP is blocked
 		blocked, err := auditService.IsIPBlocked(ip)

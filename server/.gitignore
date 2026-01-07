@@ -1,6 +1,19 @@
+# Environment files (contain secrets)
 .env
+.env.production
+.env.local
+
+# Logs
 *.log
+
+# Directories
 tmp/
 dist/
 vendor/
+
+# Binaries
 *.exe
+*.exe~
+
+# Firebase service account (if not using env vars)
+# workradar-firebase.json
