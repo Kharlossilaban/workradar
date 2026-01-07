@@ -83,23 +83,29 @@ func ThreatDetectionMiddleware(auditService *services.AuditService, config Threa
 
 		// SQL Injection Detection
 		if config.EnableSQLInjectionDetection {
-			if detected, pattern := detectSQLInjection(c); detected {
-				auditService.LogSecurityEvent(
-					models.EventSQLInjectionAttempt,
-					models.SeverityCritical,
-					nil,
-					ip,
-					fmt.Sprintf("SQL Injection attempt detected. Pattern: %s, Path: %s", pattern, c.Path()),
-					userAgent,
-				)
+			// Skip SQL injection check for JSON requests (API calls)
+			contentType := c.Get("Content-Type")
+			isJSONRequest := strings.Contains(strings.ToLower(contentType), "application/json")
 
-				// Block the IP
-				auditService.BlockIP(ip, "SQL Injection attempt detected", int(config.BlockDuration.Minutes()))
+			if !isJSONRequest {
+				if detected, pattern := detectSQLInjection(c); detected {
+					auditService.LogSecurityEvent(
+						models.EventSQLInjectionAttempt,
+						models.SeverityCritical,
+						nil,
+						ip,
+						fmt.Sprintf("SQL Injection attempt detected. Pattern: %s, Path: %s", pattern, c.Path()),
+						userAgent,
+					)
 
-				return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-					"error":   "Invalid request",
-					"message": "Your request has been blocked due to security concerns.",
-				})
+					// Block the IP
+					auditService.BlockIP(ip, "SQL Injection attempt detected", int(config.BlockDuration.Minutes()))
+
+					return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+						"error":   "Invalid request",
+						"message": "Your request has been blocked due to security concerns.",
+					})
+				}
 			}
 		}
 
