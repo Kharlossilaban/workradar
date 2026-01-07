@@ -1,0 +1,80 @@
+# Prometheus Configuration for Workradar
+# Place this file in your Prometheus config directory
+
+global:
+  scrape_interval: 15s        # Scrape targets every 15 seconds
+  evaluation_interval: 15s    # Evaluate rules every 15 seconds
+  
+  # Attach these labels to any time series or alerts
+  external_labels:
+    monitor: 'workradar-monitor'
+    environment: 'production'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+# Rule files (optional - for alerting rules)
+rule_files:
+  - "alert_rules.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    metrics_path: /metrics
+    scheme: http
+
+  # Workradar API Server
+  - job_name: 'workradar-api'
+    static_configs:
+      - targets: ['localhost:8080']
+    metrics_path: /api/metrics
+    scheme: http
+    # Add authorization header for authenticated metrics endpoint
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/workradar_token.txt
+    
+    # Relabel configs untuk add metadata
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: workradar-api-prod
+      - source_labels: [__address__]
+        target_label: __param_target
+      - target_label: __address__
+        replacement: localhost:8080
+
+  # Workradar Health Checks (unauthenticated)
+  - job_name: 'workradar-health'
+    static_configs:
+      - targets: ['localhost:8080']
+    metrics_path: /api/health
+    scheme: http
+    scrape_interval: 30s
+    
+  # MySQL Database (if using mysqld_exporter)
+  - job_name: 'mysql'
+    static_configs:
+      - targets: ['localhost:9104']
+    metrics_path: /metrics
+    scheme: http
+
+  # Node Exporter (server system metrics - optional)
+  - job_name: 'node'
+    static_configs:
+      - targets: ['localhost:9100']
+    metrics_path: /metrics
+    scheme: http
+
+# Remote write/read (optional - for long-term storage)
+# remote_write:
+#   - url: "http://your-remote-storage:9201/write"
+# remote_read:
+#   - url: "http://your-remote-storage:9201/read"

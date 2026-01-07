@@ -1,0 +1,156 @@
+# Prometheus Alert Rules for Workradar
+# Place this file alongside prometheus.yml
+
+groups:
+  # ============================================
+  # Server Health Alerts
+  # ============================================
+  - name: workradar_server_alerts
+    rules:
+      # API Server Down
+      - alert: WorkradarAPIDown
+        expr: up{job="workradar-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Workradar API Server is down"
+          description: "Workradar API server has been unreachable for more than 1 minute."
+          runbook_url: "https://docs.workradar.com/runbooks/api-down"
+
+      # High Response Time
+      - alert: HighResponseTime
+        expr: http_request_duration_seconds{job="workradar-api", quantile="0.95"} > 2
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "High API response time detected"
+          description: "95th percentile response time is above 2 seconds for 5 minutes."
+
+      # High Error Rate
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{job="workradar-api", status=~"5.."}[5m]) / rate(http_requests_total{job="workradar-api"}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "High error rate on API"
+          description: "Error rate is above 5% for the last 5 minutes."
+
+  # ============================================
+  # Database Alerts
+  # ============================================
+  - name: workradar_database_alerts
+    rules:
+      # Database Connection Pool Exhausted
+      - alert: DatabaseConnectionPoolExhausted
+        expr: mysql_global_status_threads_connected / mysql_global_variables_max_connections > 0.8
+        for: 2m
+        labels:
+          severity: warning
+          team: database
+        annotations:
+          summary: "Database connection pool is nearly exhausted"
+          description: "MySQL connection pool is at {{ $value | humanizePercentage }} capacity."
+
+      # Database Slow Queries
+      - alert: HighSlowQueries
+        expr: rate(mysql_global_status_slow_queries[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          team: database
+        annotations:
+          summary: "High number of slow queries"
+          description: "Database has {{ $value }} slow queries per second."
+
+      # Database Down
+      - alert: MySQLDown
+        expr: mysql_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: database
+        annotations:
+          summary: "MySQL database is down"
+          description: "MySQL instance has been down for more than 1 minute."
+
+  # ============================================
+  # Security Alerts
+  # ============================================
+  - name: workradar_security_alerts
+    rules:
+      # High Failed Login Attempts
+      - alert: HighFailedLogins
+        expr: increase(workradar_failed_logins_total[1h]) > 50
+        for: 5m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "High number of failed login attempts"
+          description: "{{ $value }} failed login attempts in the last hour. Possible brute force attack."
+
+      # Suspicious Activity Detected
+      - alert: SuspiciousActivity
+        expr: increase(workradar_security_events_total{type="sql_injection_attempt"}[1h]) > 10
+        for: 1m
+        labels:
+          severity: critical
+          team: security
+        annotations:
+          summary: "SQL Injection attempts detected"
+          description: "{{ $value }} SQL injection attempts detected in the last hour."
+
+      # Account Lockouts
+      - alert: HighAccountLockouts
+        expr: increase(workradar_account_lockouts_total[1h]) > 20
+        for: 5m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "High number of account lockouts"
+          description: "{{ $value }} accounts locked out in the last hour."
+
+  # ============================================
+  # Resource Alerts
+  # ============================================
+  - name: workradar_resource_alerts
+    rules:
+      # High CPU Usage
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+          team: ops
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is above 80% for 10 minutes on {{ $labels.instance }}."
+
+      # High Memory Usage
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+          team: ops
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is above 85% on {{ $labels.instance }}."
+
+      # Low Disk Space
+      - alert: LowDiskSpace
+        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+          team: ops
+        annotations:
+          summary: "Low disk space"
+          description: "Disk space is below 10% on {{ $labels.instance }} ({{ $labels.mountpoint }})."

@@ -1,0 +1,27 @@
+# Grafana Data Sources Configuration
+# Auto-provisioned when Grafana starts
+
+apiVersion: 1
+
+datasources:
+  # Prometheus Data Source
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      timeInterval: "15s"
+      queryTimeout: "60s"
+      httpMethod: "POST"
+
+  # Optional: MySQL Direct Connection (for custom queries)
+  # - name: MySQL
+  #   type: mysql
+  #   url: host.docker.internal:3306
+  #   database: workradar
+  #   user: workradar_readonly
+  #   secureJsonData:
+  #     password: your_readonly_password
+  #   editable: false

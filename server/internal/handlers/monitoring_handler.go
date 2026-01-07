@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -387,42 +388,162 @@ func (h *MonitoringHandler) GetSecurityDashboard(c *fiber.Ctx) error {
 }
 
 // GetMetrics godoc
-// @Summary Get system metrics
-// @Description Returns system metrics for monitoring
+// @Summary Get system metrics in Prometheus format
+// @Description Returns system metrics for Prometheus monitoring
 // @Tags Monitoring
-// @Produce json
-// @Success 200 {object} map[string]interface{}
+// @Produce text/plain
+// @Success 200 {string} string "Prometheus metrics"
 // @Router /api/metrics [get]
 func (h *MonitoringHandler) GetMetrics(c *fiber.Ctx) error {
-	metrics := fiber.Map{
-		"timestamp":      time.Now().Format(time.RFC3339),
-		"uptime_seconds": time.Since(startTime).Seconds(),
-	}
+	var sb strings.Builder
+
+	// Uptime metric
+	uptimeSeconds := time.Since(startTime).Seconds()
+	sb.WriteString("# HELP workradar_uptime_seconds Time since server started in seconds\n")
+	sb.WriteString("# TYPE workradar_uptime_seconds gauge\n")
+	sb.WriteString(fmt.Sprintf("workradar_uptime_seconds %.2f\n\n", uptimeSeconds))
 
 	// Database metrics
 	dbStats := database.GetDBStatsStruct()
 	if dbStats != nil {
-		metrics["db_connections_open"] = dbStats.OpenConnections
-		metrics["db_connections_in_use"] = dbStats.InUse
-		metrics["db_connections_idle"] = dbStats.Idle
-		metrics["db_wait_count"] = dbStats.WaitCount
-		metrics["db_wait_duration_ms"] = dbStats.WaitDuration.Milliseconds()
+		sb.WriteString("# HELP workradar_db_open_connections Number of open database connections\n")
+		sb.WriteString("# TYPE workradar_db_open_connections gauge\n")
+		sb.WriteString(fmt.Sprintf("workradar_db_open_connections %d\n\n", dbStats.OpenConnections))
+
+		sb.WriteString("# HELP workradar_db_in_use_connections Number of in-use database connections\n")
+		sb.WriteString("# TYPE workradar_db_in_use_connections gauge\n")
+		sb.WriteString(fmt.Sprintf("workradar_db_in_use_connections %d\n\n", dbStats.InUse))
+
+		sb.WriteString("# HELP workradar_db_idle_connections Number of idle database connections\n")
+		sb.WriteString("# TYPE workradar_db_idle_connections gauge\n")
+		sb.WriteString(fmt.Sprintf("workradar_db_idle_connections %d\n\n", dbStats.Idle))
+
+		sb.WriteString("# HELP workradar_db_max_connections Maximum number of database connections\n")
+		sb.WriteString("# TYPE workradar_db_max_connections gauge\n")
+		sb.WriteString(fmt.Sprintf("workradar_db_max_connections %d\n\n", dbStats.MaxOpenConnections))
+
+		sb.WriteString("# HELP workradar_db_wait_count Total number of connections waited for\n")
+		sb.WriteString("# TYPE workradar_db_wait_count counter\n")
+		sb.WriteString(fmt.Sprintf("workradar_db_wait_count %d\n\n", dbStats.WaitCount))
+
+		sb.WriteString("# HELP workradar_db_wait_duration_seconds Total time blocked waiting for connections\n")
+		sb.WriteString("# TYPE workradar_db_wait_duration_seconds counter\n")
+		sb.WriteString(fmt.Sprintf("workradar_db_wait_duration_seconds %.3f\n\n", dbStats.WaitDuration.Seconds()))
 	}
 
-	// Security metrics
+	// Security metrics from audit service
 	auditReport := h.auditService.GetLastReport()
 	if auditReport != nil {
-		metrics["security_audit_score"] = auditReport.OverallScore
-		metrics["security_audit_findings"] = len(auditReport.Findings)
+		sb.WriteString("# HELP workradar_security_audit_score Last security audit score (0-100)\n")
+		sb.WriteString("# TYPE workradar_security_audit_score gauge\n")
+		sb.WriteString(fmt.Sprintf("workradar_security_audit_score %d\n\n", auditReport.OverallScore))
+
+		sb.WriteString("# HELP workradar_security_audit_findings Number of findings in last audit\n")
+		sb.WriteString("# TYPE workradar_security_audit_findings gauge\n")
+		sb.WriteString(fmt.Sprintf("workradar_security_audit_findings %d\n\n", len(auditReport.Findings)))
 	}
 
+	// Vulnerability scan metrics
 	vulnScan := h.vulnScanner.GetLastScan()
 	if vulnScan != nil {
-		metrics["vulnerability_risk_score"] = vulnScan.RiskScore
-		metrics["vulnerability_count"] = len(vulnScan.Vulnerabilities)
+		sb.WriteString("# HELP workradar_vulnerability_risk_score Vulnerability risk score (0-100)\n")
+		sb.WriteString("# TYPE workradar_vulnerability_risk_score gauge\n")
+		sb.WriteString(fmt.Sprintf("workradar_vulnerability_risk_score %d\n\n", vulnScan.RiskScore))
+
+		sb.WriteString("# HELP workradar_vulnerability_count Number of vulnerabilities found\n")
+		sb.WriteString("# TYPE workradar_vulnerability_count gauge\n")
+		sb.WriteString(fmt.Sprintf("workradar_vulnerability_count %d\n\n", len(vulnScan.Vulnerabilities)))
 	}
 
-	return c.JSON(metrics)
+	// Security events from database (count recent events)
+	securityMetrics := h.getSecurityMetricsFromDB()
+	if securityMetrics != nil {
+		sb.WriteString("# HELP workradar_failed_logins_total Total failed login attempts\n")
+		sb.WriteString("# TYPE workradar_failed_logins_total counter\n")
+		sb.WriteString(fmt.Sprintf("workradar_failed_logins_total %d\n\n", securityMetrics.FailedLogins))
+
+		sb.WriteString("# HELP workradar_account_lockouts_total Total account lockouts\n")
+		sb.WriteString("# TYPE workradar_account_lockouts_total counter\n")
+		sb.WriteString(fmt.Sprintf("workradar_account_lockouts_total %d\n\n", securityMetrics.AccountLockouts))
+
+		sb.WriteString("# HELP workradar_blocked_ips_current Currently blocked IPs\n")
+		sb.WriteString("# TYPE workradar_blocked_ips_current gauge\n")
+		sb.WriteString(fmt.Sprintf("workradar_blocked_ips_current %d\n\n", securityMetrics.BlockedIPs))
+
+		sb.WriteString("# HELP workradar_security_events_total Total security events by type\n")
+		sb.WriteString("# TYPE workradar_security_events_total counter\n")
+		for eventType, count := range securityMetrics.EventsByType {
+			sb.WriteString(fmt.Sprintf("workradar_security_events_total{type=\"%s\"} %d\n", eventType, count))
+		}
+		sb.WriteString("\n")
+	}
+
+	// Server info
+	sb.WriteString("# HELP workradar_info Server version information\n")
+	sb.WriteString("# TYPE workradar_info gauge\n")
+	sb.WriteString("workradar_info{version=\"1.0.0\",environment=\"production\"} 1\n")
+
+	c.Set("Content-Type", "text/plain; charset=utf-8")
+	return c.SendString(sb.String())
+}
+
+// SecurityMetrics holds security-related metrics
+type SecurityMetrics struct {
+	FailedLogins    int64
+	AccountLockouts int64
+	BlockedIPs      int64
+	EventsByType    map[string]int64
+}
+
+// getSecurityMetricsFromDB fetches security metrics from database
+func (h *MonitoringHandler) getSecurityMetricsFromDB() *SecurityMetrics {
+	metrics := &SecurityMetrics{
+		EventsByType: make(map[string]int64),
+	}
+
+	db := database.DB
+	if db == nil {
+		return nil
+	}
+
+	// Count failed logins (last 24h)
+	var failedLogins int64
+	db.Model(&models.LoginAttempt{}).
+		Where("success = ? AND created_at > ?", false, time.Now().Add(-24*time.Hour)).
+		Count(&failedLogins)
+	metrics.FailedLogins = failedLogins
+
+	// Count account lockouts (last 24h)
+	var lockouts int64
+	db.Model(&models.SecurityEvent{}).
+		Where("event_type = ? AND created_at > ?", "ACCOUNT_LOCKED", time.Now().Add(-24*time.Hour)).
+		Count(&lockouts)
+	metrics.AccountLockouts = lockouts
+
+	// Count currently blocked IPs
+	var blockedIPs int64
+	db.Model(&models.BlockedIP{}).
+		Where("blocked_until > ? OR blocked_until IS NULL", time.Now()).
+		Count(&blockedIPs)
+	metrics.BlockedIPs = blockedIPs
+
+	// Count security events by type (last 24h)
+	type EventCount struct {
+		EventType string
+		Count     int64
+	}
+	var eventCounts []EventCount
+	db.Model(&models.SecurityEvent{}).
+		Select("event_type, count(*) as count").
+		Where("created_at > ?", time.Now().Add(-24*time.Hour)).
+		Group("event_type").
+		Scan(&eventCounts)
+
+	for _, ec := range eventCounts {
+		metrics.EventsByType[strings.ToLower(ec.EventType)] = ec.Count
+	}
+
+	return metrics
 }
 
 // ReadinessCheck godoc

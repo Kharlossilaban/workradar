@@ -1,0 +1,116 @@
+# Alertmanager Configuration for Workradar
+# Routes alerts to appropriate channels
+
+global:
+  # How long to wait before sending a notification again
+  resolve_timeout: 5m
+
+  # SMTP settings for email alerts
+  smtp_smarthost: 'smtp.mailgun.org:587'
+  smtp_from: 'alertmanager@mg.workradar.com'
+  smtp_auth_username: 'postmaster@mg.workradar.com'
+  smtp_auth_password: 'YOUR_MAILGUN_SMTP_PASSWORD'
+  smtp_require_tls: true
+
+# Alert templates
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Route tree
+route:
+  # Default receiver
+  receiver: 'workradar-team'
+  
+  # Group alerts by these labels
+  group_by: ['alertname', 'severity', 'team']
+  
+  # How long to wait before sending the first notification
+  group_wait: 30s
+  
+  # How long to wait before sending subsequent notifications
+  group_interval: 5m
+  
+  # How long to wait before re-sending a notification
+  repeat_interval: 4h
+
+  # Child routes for specific alerts
+  routes:
+    # Critical alerts go to all channels immediately
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 10s
+      repeat_interval: 1h
+
+    # Security alerts
+    - match:
+        team: security
+      receiver: 'security-team'
+      group_wait: 10s
+
+    # Database alerts
+    - match:
+        team: database
+      receiver: 'database-team'
+
+    # Infrastructure alerts
+    - match:
+        team: ops
+      receiver: 'ops-team'
+
+# Inhibition rules
+inhibit_rules:
+  # If an alert with severity=critical is firing, mute severity=warning
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']
+
+# Receivers
+receivers:
+  # Default team receiver
+  - name: 'workradar-team'
+    email_configs:
+      - to: 'team@workradar.com'
+        send_resolved: true
+        headers:
+          Subject: '[Workradar Alert] {{ .GroupLabels.alertname }}'
+
+  # Critical alerts - immediate notification
+  - name: 'critical-alerts'
+    email_configs:
+      - to: 'oncall@workradar.com'
+        send_resolved: true
+        headers:
+          Subject: '🚨 [CRITICAL] {{ .GroupLabels.alertname }}'
+    # Optional: Add Slack webhook for instant notifications
+    # slack_configs:
+    #   - api_url: 'https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK'
+    #     channel: '#alerts-critical'
+    #     title: '🚨 Critical Alert'
+    #     text: '{{ .CommonAnnotations.description }}'
+
+  # Security team
+  - name: 'security-team'
+    email_configs:
+      - to: 'security@workradar.com'
+        send_resolved: true
+        headers:
+          Subject: '🔐 [Security] {{ .GroupLabels.alertname }}'
+
+  # Database team
+  - name: 'database-team'
+    email_configs:
+      - to: 'dba@workradar.com'
+        send_resolved: true
+        headers:
+          Subject: '🗃️ [Database] {{ .GroupLabels.alertname }}'
+
+  # Ops/Infrastructure team
+  - name: 'ops-team'
+    email_configs:
+      - to: 'ops@workradar.com'
+        send_resolved: true
+        headers:
+          Subject: '⚙️ [Ops] {{ .GroupLabels.alertname }}'

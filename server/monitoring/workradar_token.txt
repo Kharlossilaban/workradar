@@ -1,0 +1,11 @@
+# Placeholder untuk JWT token
+# Ganti dengan token valid dari Workradar API
+# 
+# Cara mendapatkan token:
+# 1. Login ke Workradar API sebagai admin
+# 2. Copy JWT token dari response
+# 3. Paste di bawah ini (hapus baris ini dan baris di atas)
+#
+# Contoh: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+YOUR_JWT_TOKEN_HERE

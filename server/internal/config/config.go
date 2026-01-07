@@ -77,13 +77,9 @@ func Load() error {
 		log.Printf("❌ .env file NOT found: %v\n", err)
 	}
 
-	// Load .env file jika ada
-	if err := godotenv.Load(); err != nil {
-		log.Printf("⚠️ godotenv.Load() error: %v\n", err)
-		log.Println("⚠️ Using system environment variables")
-	} else {
-		log.Println("✅ .env file loaded successfully by godotenv")
-	}
+	// Load .env file jika ada (tidak error jika tidak ditemukan)
+	_ = godotenv.Load() // Ignore error, use system env vars if .env not found
+	log.Println("✅ Using environment variables (from .env or system)")
 
 	// Debug: Print DB password status
 	dbPass := os.Getenv("DB_PASSWORD")
@@ -95,13 +91,14 @@ func Load() error {
 
 	AppConfig = &Config{
 		Port: getEnv("PORT", "8080"),
-		Env:  getEnv("ENV", "development"),
+		Env:  getEnv("ENV", "production"),
 
-		DBHost:     getEnv("DB_HOST", "localhost"),
-		DBPort:     getEnv("DB_PORT", "3306"),
-		DBUser:     getEnv("DB_USER", "root"),
-		DBPassword: getEnv("DB_PASSWORD", ""),
-		DBName:     getEnv("DB_NAME", "workradar"),
+		// Support Railway MySQL environment variables
+		DBHost:     getFirstEnv([]string{"DB_HOST", "MYSQLHOST"}, "localhost"),
+		DBPort:     getFirstEnv([]string{"DB_PORT", "MYSQLPORT"}, "3306"),
+		DBUser:     getFirstEnv([]string{"DB_USER", "MYSQLUSER"}, "root"),
+		DBPassword: getFirstEnv([]string{"DB_PASSWORD", "MYSQLPASSWORD"}, ""),
+		DBName:     getFirstEnv([]string{"DB_NAME", "MYSQLDATABASE"}, "railway"),
 
 		JWTSecret: getEnv("JWT_SECRET", "default-secret-key"),
 		JWTExpiry: getEnv("JWT_EXPIRY", "24h"),
@@ -158,6 +155,16 @@ func (c *Config) GetDSN() string {
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
+	}
+	return defaultValue
+}
+
+// getFirstEnv tries multiple environment variable keys and returns the first non-empty value
+func getFirstEnv(keys []string, defaultValue string) string {
+	for _, key := range keys {
+		if value := os.Getenv(key); value != "" {
+			return value
+		}
 	}
 	return defaultValue
 }

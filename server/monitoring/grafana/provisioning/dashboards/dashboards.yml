@@ -1,0 +1,17 @@
+# Grafana Dashboard Provisioning
+# Auto-loads dashboards from the specified folder
+
+apiVersion: 1
+
+providers:
+  - name: 'Workradar Dashboards'
+    orgId: 1
+    folder: 'Workradar'
+    folderUid: 'workradar'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: true
