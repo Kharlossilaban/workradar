@@ -2,7 +2,6 @@ package services
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"html/template"
 	"log"
@@ -308,8 +307,6 @@ func (s *EmailService) SendVIPUpgradeEmail(toEmail, userName, plan string) error
 
 // sendViaResend sends an HTML email using Resend API
 func (s *EmailService) sendViaResend(to, subject, htmlBody string) error {
-	ctx := context.Background()
-
 	req := &resend.SendEmailRequest{
 		From:    fmt.Sprintf("%s <%s>", s.fromName, s.fromEmail),
 		To:      []string{to},
@@ -317,7 +314,7 @@ func (s *EmailService) sendViaResend(to, subject, htmlBody string) error {
 		Html:    htmlBody,
 	}
 
-	sent, err := s.resendClient.Emails.Send(ctx, req)
+	sent, err := s.resendClient.Emails.Send(req)
 	if err != nil {
 		log.Printf("❌ Failed to send email to %s via Resend: %v", to, err)
 		return fmt.Errorf("failed to send email: %w", err)
