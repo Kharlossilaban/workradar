@@ -7,7 +7,7 @@ import (
 	"html/template"
 	"log"
 
-	"github.com/resendlabs/resend-go/v2"
+	"github.com/resend/resend-go/v2"
 	"github.com/workradar/server/internal/config"
 )
 
