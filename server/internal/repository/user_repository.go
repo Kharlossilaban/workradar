@@ -186,3 +186,12 @@ func (r *UserRepository) UpdateLastLogin(userID, ip string) error {
 			"failed_login_attempts": 0,
 		}).Error
 }
+
+// ============ Email Verification Methods ============
+
+// VerifyEmail marks user email as verified
+func (r *UserRepository) VerifyEmail(userID string) error {
+	return r.db.Model(&models.User{}).
+		Where("id = ?", userID).
+		Update("email_verified", true).Error
+}

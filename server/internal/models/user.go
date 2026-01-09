@@ -37,6 +37,9 @@ type User struct {
 	EncryptedPhone *string `gorm:"type:text" json:"-"`              // AES-256 encrypted phone
 	EmailHash      string  `gorm:"type:varchar(64);index" json:"-"` // SHA-256 hash for searchability
 
+	// Email Verification Field
+	EmailVerified bool `gorm:"default:false" json:"email_verified"`
+
 	// Security Fields (Minggu 3: Account Lockout & MFA)
 	FailedLoginAttempts int        `gorm:"default:0" json:"-"`
 	LockedUntil         *time.Time `json:"-"`
@@ -71,6 +74,7 @@ type UserResponse struct {
 	ProfilePicture *string      `json:"profile_picture"`
 	AuthProvider   AuthProvider `json:"auth_provider"`
 	UserType       UserType     `json:"user_type"`
+	EmailVerified  bool         `json:"email_verified"`
 	VIPExpiresAt   *time.Time   `json:"vip_expires_at,omitempty"`
 	WorkDays       *string      `json:"work_days,omitempty"`
 	CreatedAt      time.Time    `json:"created_at"`
@@ -85,6 +89,7 @@ func (u *User) ToResponse() UserResponse {
 		ProfilePicture: u.ProfilePicture,
 		AuthProvider:   u.AuthProvider,
 		UserType:       u.UserType,
+		EmailVerified:  u.EmailVerified,
 		VIPExpiresAt:   u.VIPExpiresAt,
 		WorkDays:       u.WorkDays,
 		CreatedAt:      u.CreatedAt,

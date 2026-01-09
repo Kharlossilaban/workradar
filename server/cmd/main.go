@@ -48,6 +48,8 @@ func main() {
 		&models.LoginAttempt{},
 		&models.BlockedIP{},
 		&models.PasswordHistory{},
+		// Email Verification model
+		&models.EmailVerification{},
 	); err != nil {
 		log.Fatal("Failed to run migrations:", err)
 	}
@@ -58,6 +60,7 @@ func main() {
 	categoryRepo := repository.NewCategoryRepository(database.DB)
 	taskRepo := repository.NewTaskRepository(database.DB)
 	passwordResetRepo := repository.NewPasswordResetRepository(database.DB)
+	emailVerificationRepo := repository.NewEmailVerificationRepository(database.DB)
 	subscriptionRepo := repository.NewSubscriptionRepository(database.DB)
 	transactionRepo := repository.NewTransactionRepository(database.DB)
 	botMessageRepo := repository.NewBotMessageRepository(database.DB)
@@ -97,7 +100,7 @@ func main() {
 	}))
 
 	// Initialize services
-	authService := services.NewAuthService(userRepo, categoryRepo, passwordResetRepo)
+	authService := services.NewAuthService(userRepo, categoryRepo, passwordResetRepo, emailVerificationRepo)
 	taskService := services.NewTaskService(taskRepo, categoryRepo)
 	categoryService := services.NewCategoryService(categoryRepo, taskRepo)
 	profileService := services.NewProfileService(userRepo, taskRepo, categoryRepo)
@@ -188,6 +191,8 @@ func main() {
 	auth := api.Group("/auth")
 	// Apply brute force protection to login endpoint (Keamanan Basis Data - Minggu 2 & 3)
 	auth.Post("/register", authHandler.Register)
+	auth.Post("/verify-email", authHandler.VerifyEmail)
+	auth.Post("/resend-otp", authHandler.ResendVerificationOTP)
 	auth.Post("/login",
 		middleware.BruteForceProtectionMiddleware(auditService, threatConfig),
 		middleware.AccountLockoutMiddleware(auditService, threatConfig),

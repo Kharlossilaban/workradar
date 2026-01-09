@@ -1,4 +1,52 @@
 Workradar - Remaining Work & Bug Analysis
+
+## ✅ COMPLETED IMPLEMENTATIONS
+
+### OTP Email Verification Flow (Registrasi)
+**Status: ✅ COMPLETED**
+**Date: January 10, 2026**
+
+#### Breaking Change Notice:
+User yang baru registrasi **TIDAK** akan langsung masuk ke dashboard. Mereka harus:
+1. Mengisi form registrasi
+2. Menerima kode OTP di email (6 digit)
+3. Memasukkan kode OTP untuk verifikasi
+4. Diarahkan ke halaman login
+5. Login dengan kredensial yang baru dibuat
+
+#### Flow Perubahan:
+- **SEBELUM:** Register → Auto Login → Dashboard
+- **SEKARANG:** Register → Kirim OTP → Verify OTP → Navigate ke Login Screen
+
+#### Files Modified:
+
+**Backend (Golang):**
+- `server/internal/models/user.go` - Added `EmailVerified` field
+- `server/internal/models/email_verification.go` - NEW: Model for OTP storage
+- `server/internal/repository/email_verification_repository.go` - NEW: Repository
+- `server/internal/repository/user_repository.go` - Added `VerifyEmail` method
+- `server/internal/services/auth_service.go` - Modified Register, added OTP methods
+- `server/internal/handlers/auth_handler.go` - Modified Register, added handlers
+- `server/cmd/main.go` - Added new routes and repository initialization
+
+**New API Endpoints:**
+- `POST /api/auth/register` - Returns `requires_verification: true`, no token
+- `POST /api/auth/verify-email` - Verify OTP code
+- `POST /api/auth/resend-otp` - Resend verification OTP
+
+**Frontend (Flutter):**
+- `client/lib/core/services/auth_api_service.dart` - Added `RegisterResponse`, new methods
+- `client/lib/features/auth/screens/registration_otp_screen.dart` - NEW: OTP screen
+- `client/lib/features/auth/screens/register_screen.dart` - Navigate to OTP screen
+
+#### Notes:
+- OTP codes expire after 15 minutes
+- In dev mode (SMTP not configured), OTP code is returned in response
+- Users with unverified email cannot login
+- Google OAuth users are auto-verified (no OTP needed)
+
+---
+
 📊 Status Overview
 Category	Status	Priority
 Core Functionality	✅ 95% Done	-

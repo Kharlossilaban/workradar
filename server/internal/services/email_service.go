@@ -92,7 +92,7 @@ func (s *EmailService) SendVerificationCode(toEmail, code string) error {
                             <!-- Warning -->
                             <div style="background-color: #FEF3C7; border-left: 4px solid #F59E0B; padding: 15px; border-radius: 0 8px 8px 0; margin: 0 0 30px 0;">
                                 <p style="color: #92400E; margin: 0; font-size: 14px;">
-                                    ⚠️ <strong>Penting:</strong> Kode ini akan kadaluarsa dalam <strong>15 menit</strong>. 
+                                    ⚠️ <strong>Penting:</strong> Kode ini akan kadaluarsa dalam <strong>2 menit</strong>. 
                                     Jangan bagikan kode ini kepada siapapun.
                                 </p>
                             </div>

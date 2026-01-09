@@ -35,18 +35,27 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 		})
 	}
 
-	user, token, err := h.authService.Register(req.Email, req.Username, req.Password)
+	user, code, err := h.authService.Register(req.Email, req.Username, req.Password)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
 		})
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"message": "User registered successfully",
-		"user":    user.ToResponse(),
-		"token":   token,
-	})
+	// REVISED: Return response without token - user must verify email first
+	response := fiber.Map{
+		"message":               "User registered successfully. Please verify your email.",
+		"user":                  user.ToResponse(),
+		"requires_verification": true,
+	}
+
+	// Only include code in development mode (when SMTP not configured)
+	if code != "" {
+		response["code"] = code
+		response["dev_mode"] = true
+	}
+
+	return c.Status(fiber.StatusCreated).JSON(response)
 }
 
 // Login godoc
@@ -246,4 +255,73 @@ func (h *AuthHandler) ChangePassword(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Password changed successfully",
 	})
+}
+
+// VerifyEmail godoc
+type VerifyEmailRequest struct {
+	Code string `json:"code"`
+}
+
+func (h *AuthHandler) VerifyEmail(c *fiber.Ctx) error {
+	var req VerifyEmailRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
+
+	if req.Code == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Verification code is required",
+		})
+	}
+
+	if err := h.authService.VerifyEmail(req.Code); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Email verified successfully. You can now login.",
+	})
+}
+
+// ResendVerificationOTP godoc
+type ResendOTPRequest struct {
+	Email string `json:"email"`
+}
+
+func (h *AuthHandler) ResendVerificationOTP(c *fiber.Ctx) error {
+	var req ResendOTPRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Invalid request body",
+		})
+	}
+
+	if req.Email == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Email is required",
+		})
+	}
+
+	code, err := h.authService.ResendVerificationOTP(req.Email)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	response := fiber.Map{
+		"message": "Verification code sent to email",
+	}
+
+	// Only include code in development mode (when SMTP not configured)
+	if code != "" {
+		response["code"] = code
+		response["dev_mode"] = true
+	}
+
+	return c.Status(fiber.StatusOK).JSON(response)
 }

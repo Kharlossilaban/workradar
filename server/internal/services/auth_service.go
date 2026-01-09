@@ -12,26 +12,31 @@ import (
 )
 
 type AuthService struct {
-	userRepo          *repository.UserRepository
-	categoryRepo      *repository.CategoryRepository
-	passwordResetRepo *repository.PasswordResetRepository
-	emailService      *EmailService
+	userRepo              *repository.UserRepository
+	categoryRepo          *repository.CategoryRepository
+	passwordResetRepo     *repository.PasswordResetRepository
+	emailVerificationRepo *repository.EmailVerificationRepository
+	emailService          *EmailService
 }
 
 func NewAuthService(
 	userRepo *repository.UserRepository,
 	categoryRepo *repository.CategoryRepository,
 	passwordResetRepo *repository.PasswordResetRepository,
+	emailVerificationRepo *repository.EmailVerificationRepository,
 ) *AuthService {
 	return &AuthService{
-		userRepo:          userRepo,
-		categoryRepo:      categoryRepo,
-		passwordResetRepo: passwordResetRepo,
-		emailService:      NewEmailService(),
+		userRepo:              userRepo,
+		categoryRepo:          categoryRepo,
+		passwordResetRepo:     passwordResetRepo,
+		emailVerificationRepo: emailVerificationRepo,
+		emailService:          NewEmailService(),
 	}
 }
 
 // Register membuat user baru dengan default categories
+// REVISED: Does NOT auto-login. Returns user without token.
+// User must verify email via OTP before they can login.
 func (s *AuthService) Register(email, username, password string) (*models.User, string, error) {
 	// Check if email already exists
 	existing, err := s.userRepo.FindByEmail(email)
@@ -45,13 +50,14 @@ func (s *AuthService) Register(email, username, password string) (*models.User, 
 		return nil, "", err
 	}
 
-	// Create user
+	// Create user with EmailVerified = false
 	user := &models.User{
-		Email:        email,
-		Username:     username,
-		PasswordHash: hashedPassword,
-		AuthProvider: models.AuthProviderLocal,
-		UserType:     models.UserTypeRegular,
+		Email:         email,
+		Username:      username,
+		PasswordHash:  hashedPassword,
+		AuthProvider:  models.AuthProviderLocal,
+		UserType:      models.UserTypeRegular,
+		EmailVerified: false, // User must verify email
 	}
 
 	if err := s.userRepo.Create(user); err != nil {
@@ -63,13 +69,15 @@ func (s *AuthService) Register(email, username, password string) (*models.User, 
 		return nil, "", err
 	}
 
-	// Generate JWT token
-	token, err := utils.GenerateToken(user.ID, user.Email, string(user.UserType))
+	// Send verification OTP to user's email
+	code, err := s.SendVerificationOTP(email)
 	if err != nil {
-		return nil, "", err
+		log.Printf("⚠️ Failed to send verification OTP: %v", err)
+		// Don't fail registration, user can request OTP again
 	}
 
-	return user, token, nil
+	// Return code in dev mode for testing
+	return user, code, nil
 }
 
 // LoginResult represents the result of a login attempt
@@ -112,6 +120,11 @@ func (s *AuthService) LoginWithMFA(email, password string) (*LoginResult, error)
 			return nil, errors.New("invalid email or password")
 		}
 		return nil, err
+	}
+
+	// Check if email is verified (for local auth only)
+	if user.AuthProvider == models.AuthProviderLocal && !user.EmailVerified {
+		return nil, errors.New("email not verified. Please verify your email first")
 	}
 
 	// Check if account is locked
@@ -200,7 +213,7 @@ func (s *AuthService) ForgotPassword(email string) (string, error) {
 		UserID:           user.ID,
 		Email:            email,
 		VerificationCode: code,
-		ExpiresAt:        time.Now().Add(15 * time.Minute), // 15 minutes
+		ExpiresAt:        time.Now().Add(2 * time.Minute), // 2 minutes for security
 		Used:             false,
 	}
 
@@ -317,4 +330,82 @@ func (s *AuthService) GoogleOAuthLogin(googleID, email, username, picture string
 	}
 
 	return user, token, isNew, nil
+}
+
+// SendVerificationOTP generates and sends OTP to user's email for verification
+func (s *AuthService) SendVerificationOTP(email string) (string, error) {
+	user, err := s.userRepo.FindByEmail(email)
+	if err != nil {
+		return "", errors.New("user not found")
+	}
+
+	// Check if email is already verified
+	if user.EmailVerified {
+		return "", errors.New("email already verified")
+	}
+
+	// Delete any existing verification codes for this email
+	if s.emailVerificationRepo != nil {
+		s.emailVerificationRepo.DeleteByEmail(email)
+	}
+
+	// Generate 6-digit code
+	code := utils.GenerateVerificationCode()
+
+	// Create email verification record
+	verification := &models.EmailVerification{
+		UserID:           user.ID,
+		Email:            email,
+		VerificationCode: code,
+		ExpiresAt:        time.Now().Add(2 * time.Minute), // 2 minutes for security
+		Used:             false,
+	}
+
+	if s.emailVerificationRepo != nil {
+		if err := s.emailVerificationRepo.Create(verification); err != nil {
+			return "", err
+		}
+	}
+
+	// Send verification code via email
+	if err := s.emailService.SendVerificationCode(email, code); err != nil {
+		log.Printf("⚠️ Failed to send verification email: %v", err)
+		// Don't return error - still allow development mode where email isn't configured
+	}
+
+	// In production, don't return code in response!
+	// Only return code for development/testing when SMTP is not configured
+	if s.emailService.IsConfigured() {
+		return "", nil // Code sent via email, don't expose in API
+	}
+
+	// Development mode: return code for testing
+	log.Printf("⚠️ DEV MODE: Verification code for %s: %s", email, code)
+	return code, nil
+}
+
+// VerifyEmail verifies user's email using OTP code
+func (s *AuthService) VerifyEmail(code string) error {
+	if s.emailVerificationRepo == nil {
+		return errors.New("email verification not configured")
+	}
+
+	// Find valid verification code
+	verification, err := s.emailVerificationRepo.FindByCode(code)
+	if err != nil {
+		return errors.New("invalid or expired verification code")
+	}
+
+	// Mark user's email as verified
+	if err := s.userRepo.VerifyEmail(verification.UserID); err != nil {
+		return err
+	}
+
+	// Mark verification as used
+	return s.emailVerificationRepo.MarkAsUsed(verification.ID)
+}
+
+// ResendVerificationOTP resends OTP to user's email
+func (s *AuthService) ResendVerificationOTP(email string) (string, error) {
+	return s.SendVerificationOTP(email)
 }
