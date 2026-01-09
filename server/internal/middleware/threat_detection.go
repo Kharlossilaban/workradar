@@ -33,9 +33,9 @@ type ThreatDetectionConfig struct {
 // DefaultThreatDetectionConfig returns default configuration
 func DefaultThreatDetectionConfig() ThreatDetectionConfig {
 	return ThreatDetectionConfig{
-		MaxFailedLoginAttempts:      10, // Increased from 5 to 10 for better UX
+		MaxFailedLoginAttempts:      10,
 		FailedLoginWindow:           15 * time.Minute,
-		BlockDuration:               15 * time.Minute, // Reduced from 30 to 15 minutes
+		BlockDuration:               1 * time.Minute, // Super fast unlock for testing (was 30 min)
 		SensitiveEndpointRateLimit:  20,
 		SensitiveEndpointWindow:     1 * time.Minute,
 		EnableSQLInjectionDetection: true,
