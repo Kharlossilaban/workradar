@@ -66,3 +66,35 @@ func (h *WeatherHandler) GetForecast(c *fiber.Ctx) error {
 		"forecast": forecast,
 	})
 }
+
+// GetHourlyForecast returns hourly weather forecast for a city
+// GET /api/weather/hourly?city={city}&hours={hours}
+func (h *WeatherHandler) GetHourlyForecast(c *fiber.Ctx) error {
+	city := c.Query("city")
+	if city == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "City parameter is required",
+		})
+	}
+
+	// Parse hours parameter (default 12, max 48)
+	hours := c.QueryInt("hours", 12)
+	if hours < 1 {
+		hours = 12
+	}
+	if hours > 48 {
+		hours = 48
+	}
+
+	forecast, err := h.weatherService.GetHourlyForecast(city, hours)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": err.Error(),
+		})
+	}
+
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"status":   "success",
+		"forecast": forecast,
+	})
+}

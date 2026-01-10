@@ -35,7 +35,7 @@ class Category {
       'name': name,
       'is_default': isDefault,
       'is_hidden': isHidden,
-      'color': color?.value,
+      'color': color?.toARGB32(),
     };
   }
 

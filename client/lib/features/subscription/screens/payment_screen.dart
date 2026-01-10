@@ -29,6 +29,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
   final MidtransService _midtransService = MidtransService();
   bool _isLoading = false;
   Payment? _currentPayment;
+  late String _selectedPlan;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedPlan = widget.selectedPlan;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -171,92 +178,222 @@ class _PaymentScreenState extends State<PaymentScreen> {
         ? AppTheme.darkTextSecondary
         : AppTheme.textSecondary;
 
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppTheme.vipGold.withValues(alpha: 0.3),
-          width: 2,
-        ),
-        boxShadow: isDarkMode ? null : AppTheme.cardShadow,
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                widget.selectedPlan == 'yearly' ? 'VIP Annual' : 'VIP Monthly',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: textPrimaryColor,
-                ),
+    return Column(
+      children: [
+        // Plan Selector
+        Row(
+          children: [
+            Expanded(
+              child: _buildPlanOption(
+                'monthly',
+                'Bulanan',
+                'Rp 15.000',
+                '/bulan',
+                false,
+                isDarkMode,
               ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildPlanOption(
+                'yearly',
+                'Tahunan',
+                'Rp 150.000',
+                '/tahun',
+                true,
+                isDarkMode,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        // Selected Plan Details
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppTheme.vipGold.withValues(alpha: 0.3),
+              width: 2,
+            ),
+            boxShadow: isDarkMode ? null : AppTheme.cardShadow,
+          ),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _selectedPlan == 'yearly' ? 'VIP Tahunan' : 'VIP Bulanan',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: textPrimaryColor,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.vipGold.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      _selectedPlan == 'yearly' ? 'HEMAT 17%' : 'POPULER',
+                      style: const TextStyle(
+                        color: AppTheme.vipGold,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Rp',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: textPrimaryColor,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    _selectedPlan == 'yearly' ? '150.000' : '15.000',
+                    style: TextStyle(
+                      fontSize: 36,
+                      fontWeight: FontWeight.bold,
+                      color: textPrimaryColor,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Text(
+                      _selectedPlan == 'yearly' ? '/ tahun' : '/ bulan',
+                      style: TextStyle(fontSize: 14, color: textSecondaryColor),
+                    ),
+                  ),
+                ],
+              ),
+              if (_selectedPlan == 'yearly') ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    '💰 Hemat Rp 30.000 dibanding bulanan!',
+                    style: TextStyle(
+                      color: Colors.green,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
+              Text(
+                'Pembayaran dapat dilakukan via Transfer Bank, E-Wallet, atau Kartu Kredit',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: textSecondaryColor,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPlanOption(
+    String planId,
+    String title,
+    String price,
+    String period,
+    bool showBadge,
+    bool isDarkMode,
+  ) {
+    final isSelected = _selectedPlan == planId;
+    final cardColor = isDarkMode ? AppTheme.darkCard : Colors.white;
+    final textPrimaryColor = isDarkMode ? AppTheme.darkTextPrimary : AppTheme.textPrimary;
+
+    return GestureDetector(
+      onTap: () => setState(() => _selectedPlan = planId),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.vipGold.withValues(alpha: 0.1) : cardColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? AppTheme.vipGold : Colors.grey.shade300,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            if (showBadge)
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AppTheme.vipGold.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(20),
+                  color: Colors.green,
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Text(
-                  widget.selectedPlan == 'yearly' ? 'TERBAIK' : 'POPULER',
-                  style: const TextStyle(
-                    color: AppTheme.vipGold,
-                    fontSize: 11,
+                child: const Text(
+                  'TERBAIK',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Rp',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: textPrimaryColor,
-                ),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: isSelected ? AppTheme.vipGold : textPrimaryColor,
               ),
-              const SizedBox(width: 4),
-              Text(
-                widget.selectedPlan == 'yearly' ? '100.000' : '15.000',
-                style: TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.bold,
-                  color: textPrimaryColor,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Text(
-                  widget.selectedPlan == 'yearly' ? '/ tahun' : '/ bulan',
-                  style: TextStyle(fontSize: 14, color: textSecondaryColor),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Pembayaran dapat dilakukan via Transfer Bank, E-Wallet, atau Kartu Kredit',
-            style: TextStyle(
-              fontSize: 13,
-              color: textSecondaryColor,
-              height: 1.5,
             ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              price,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? AppTheme.vipGold : textPrimaryColor,
+              ),
+            ),
+            Text(
+              period,
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Icon(
+              isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
+              color: isSelected ? AppTheme.vipGold : Colors.grey,
+              size: 20,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -417,7 +554,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         userId: widget.userId,
         userEmail: widget.userEmail,
         userName: widget.userName,
-        plan: SubscriptionPlan.vip,
+        planType: _selectedPlan,
       );
 
       setState(() {

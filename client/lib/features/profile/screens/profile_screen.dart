@@ -39,14 +39,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadVipStatus();
     // Load profile and stats from server
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      
       final profileProvider = context.read<ProfileProvider>();
       final taskProvider = context.read<TaskProvider>();
+      final workloadProvider = context.read<WorkloadProvider>();
+      final completedTasksProvider = context.read<CompletedTasksProvider>();
+      final scaffoldMessenger = ScaffoldMessenger.of(context);
 
       try {
         await profileProvider.loadProfileFromServer();
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          scaffoldMessenger.showSnackBar(
             SnackBar(
               content: Text('Gagal memuat profil: $e'),
               backgroundColor: Colors.red,
@@ -56,8 +61,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       // Sync workload and completed tasks data
-      context.read<WorkloadProvider>().syncFromTasks(taskProvider.tasks);
-      context.read<CompletedTasksProvider>().syncFromTasks(taskProvider.tasks);
+      workloadProvider.syncFromTasks(taskProvider.tasks);
+      completedTasksProvider.syncFromTasks(taskProvider.tasks);
     });
   }
 
@@ -1244,6 +1249,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Consumer<LeaveProvider>(
                   builder: (context, leaveProvider, child) {
                     final upcomingCount = leaveProvider.upcomingLeaveCount;
+                    final scaffoldMessenger = ScaffoldMessenger.of(context);
+                    final navigator = Navigator.of(context);
 
                     return _buildActionCard(
                       isDarkMode: isDarkMode,
@@ -1257,7 +1264,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         final userId = await SecureStorage.getUserId();
                         if (userId == null || userId.isEmpty) {
                           if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
+                            scaffoldMessenger.showSnackBar(
                               const SnackBar(
                                 content: Text(
                                   'Sesi login tidak valid. Silakan login ulang.',
@@ -1269,10 +1276,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           return;
                         }
                         if (!mounted) return;
-                        Navigator.push(
-                          context,
+                        navigator.push(
                           MaterialPageRoute(
-                            builder: (context) =>
+                            builder: (navContext) =>
                                 LeaveManagementScreen(userId: userId),
                           ),
                         );

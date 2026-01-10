@@ -64,8 +64,8 @@ class _LeaveManagementScreenState extends State<LeaveManagementScreen>
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddLeaveDialog(context),
         backgroundColor: AppTheme.primaryColor,
-        child: const Icon(Iconsax.add, color: Colors.white),
         tooltip: 'Tambah Cuti',
+        child: const Icon(Iconsax.add, color: Colors.white),
       ),
     );
   }

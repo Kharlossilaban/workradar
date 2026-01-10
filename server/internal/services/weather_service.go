@@ -261,3 +261,98 @@ func (s *WeatherService) GetForecast(city string, days int) (*WeatherForecast, e
 
 	return forecast, nil
 }
+
+// HourlyForecast represents hourly weather forecast data
+type HourlyForecast struct {
+	DateTime    int64   `json:"dt"`
+	Temperature float64 `json:"temperature"`
+	FeelsLike   float64 `json:"feels_like"`
+	Description string  `json:"description"`
+	Icon        string  `json:"icon"`
+	Humidity    int     `json:"humidity"`
+	WindSpeed   float64 `json:"wind_speed"`
+	Clouds      int     `json:"clouds"`
+	Pop         float64 `json:"pop"` // Probability of precipitation
+}
+
+type HourlyWeatherForecast struct {
+	CityName string           `json:"city_name"`
+	Country  string           `json:"country"`
+	Hourly   []HourlyForecast `json:"hourly"`
+}
+
+// GetHourlyForecast fetches hourly weather forecast for a city (up to 48 hours / 16 intervals of 3 hours)
+func (s *WeatherService) GetHourlyForecast(city string, hours int) (*HourlyWeatherForecast, error) {
+	if s.apiKey == "" {
+		return nil, fmt.Errorf("weather API key not configured")
+	}
+
+	if hours < 1 || hours > 48 {
+		hours = 12 // Default to 12 hours
+	}
+
+	// Calculate count (3-hour intervals)
+	cnt := (hours + 2) / 3
+	if cnt < 1 {
+		cnt = 4 // At least 4 intervals (12 hours)
+	}
+	if cnt > 16 {
+		cnt = 16 // Max 16 intervals (48 hours)
+	}
+
+	// Build URL
+	endpoint := fmt.Sprintf("%s/forecast", s.baseURL)
+	params := url.Values{}
+	params.Add("q", city)
+	params.Add("appid", s.apiKey)
+	params.Add("units", "metric")
+	params.Add("cnt", fmt.Sprintf("%d", cnt))
+
+	fullURL := fmt.Sprintf("%s?%s", endpoint, params.Encode())
+
+	// Make request
+	resp, err := s.client.Get(fullURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch hourly forecast: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("weather API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Parse response
+	var owmResp owmForecastResponse
+	if err := json.NewDecoder(resp.Body).Decode(&owmResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	// Map to hourly forecast
+	forecast := &HourlyWeatherForecast{
+		CityName: owmResp.City.Name,
+		Country:  owmResp.City.Country,
+		Hourly:   make([]HourlyForecast, 0, len(owmResp.List)),
+	}
+
+	for _, item := range owmResp.List {
+		hourly := HourlyForecast{
+			DateTime:    item.Dt,
+			Temperature: item.Main.Temp,
+			FeelsLike:   item.Main.TempMin, // Using TempMin as feels_like since OWM forecast doesn't have feels_like
+			Humidity:    item.Main.Humidity,
+			WindSpeed:   item.Wind.Speed,
+			Clouds:      item.Clouds.All,
+			Pop:         0, // OWM free tier doesn't include precipitation probability in forecast
+		}
+
+		if len(item.Weather) > 0 {
+			hourly.Description = item.Weather[0].Description
+			hourly.Icon = item.Weather[0].Icon
+		}
+
+		forecast.Hourly = append(forecast.Hourly, hourly)
+	}
+
+	return forecast, nil
+}

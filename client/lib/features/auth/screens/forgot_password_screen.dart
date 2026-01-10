@@ -119,21 +119,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       color: AppTheme.textLight,
                     ),
                   ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Gmail tidak boleh kosong';
-                    }
-                    // Validasi format Gmail
-                    if (!value.toLowerCase().endsWith('@gmail.com')) {
-                      return 'Format Gmail salah! Harus menggunakan @gmail.com';
-                    }
-                    // Validasi format email dasar
-                    final emailRegex = RegExp(r'^[\w-\.]+@gmail\.com$');
-                    if (!emailRegex.hasMatch(value.toLowerCase())) {
-                      return 'Format Gmail tidak valid';
-                    }
-                    return null;
-                  },
+                  validator: GmailValidator.validate,
                 ),
 
                 const SizedBox(height: 32),

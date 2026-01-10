@@ -387,16 +387,20 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   void _handleSubscribe() async {
+    // Get references before async operation
+    final profileProvider = context.read<ProfileProvider>();
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
     // Get real user data from SecureStorage and ProfileProvider
     final userId = await SecureStorage.getUserId();
     final userEmail = await SecureStorage.getUserEmail();
-    final profileProvider = context.read<ProfileProvider>();
     final userName = profileProvider.username;
 
     // Validate user data before proceeding
     if (userId == null || userId.isEmpty) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
+        scaffoldMessenger.showSnackBar(
           const SnackBar(
             content: Text('Sesi login tidak valid. Silakan login ulang.'),
             backgroundColor: Colors.red,
@@ -409,10 +413,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     if (!mounted) return;
 
     // Navigate to payment screen with real user data
-    Navigator.push(
-      context,
+    navigator.push(
       MaterialPageRoute(
-        builder: (context) => PaymentScreen(
+        builder: (navContext) => PaymentScreen(
           userId: userId,
           userEmail: userEmail ?? 'user@workradar.app',
           userName: userName,

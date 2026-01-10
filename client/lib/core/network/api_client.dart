@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:workradar/core/config/environment.dart';
 import 'package:workradar/core/network/auth_interceptor.dart';
 
@@ -40,7 +41,7 @@ class ApiClient {
           responseHeader: false,
           responseBody: true,
           error: true,
-          logPrint: (log) => print('[API] $log'),
+          logPrint: (log) => debugPrint('[API] $log'),
         ),
       );
     }

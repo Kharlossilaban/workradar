@@ -184,7 +184,7 @@ class CompletedTasksScreen extends StatelessWidget {
             // Only hide the bottom part of the line if it's the last task of the last date
             showBottomLine: !(isLastDate && isLastTaskOfDate),
           );
-        }).toList(),
+        }),
 
         const SizedBox(height: 4),
       ],

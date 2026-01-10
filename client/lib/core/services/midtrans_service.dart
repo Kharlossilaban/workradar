@@ -1,15 +1,14 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import '../models/payment.dart';
-import '../config/environment.dart';
+import '../network/api_client.dart';
+import '../network/api_exception.dart';
+import 'package:dio/dio.dart';
 
 class MidtransService {
-  // Use centralized environment config instead of hardcoded URL
-  static String get _baseUrl => AppConfig.baseUrl;
+  final ApiClient _apiClient = ApiClient();
 
-  // VIP Pricing (as per requirements)
+  // VIP Pricing
   static const int vipMonthlyPrice = 15000; // Rp 15.000 per month
-  static const int vipAnnualPrice = 100000; // Rp 100.000 per year
+  static const int vipYearlyPrice = 150000; // Rp 150.000 per year (save 30K)
 
   /// Create a new payment transaction
   /// Returns Payment object with snap_token for redirect
@@ -17,120 +16,104 @@ class MidtransService {
     required String userId,
     required String userEmail,
     required String userName,
-    required SubscriptionPlan plan,
-    String? token,
+    required String planType, // 'monthly' or 'yearly'
   }) async {
     try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/api/payments/create'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
+      final amount = planType == 'yearly' ? vipYearlyPrice : vipMonthlyPrice;
+      
+      final response = await _apiClient.post(
+        '/payments/create',
+        data: {
+          'plan_type': planType,
+          'amount': amount,
         },
-        body: jsonEncode({
-          'user_id': userId,
-          'user_email': userEmail,
-          'user_name': userName,
-          'plan': _planToString(plan),
-          'amount': _getPlanAmount(plan),
-        }),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = jsonDecode(response.body);
-        return Payment.fromJson(data['payment']);
+        final data = response.data;
+        
+        // Create payment object from response
+        return Payment(
+          id: data['order_id'] ?? '',
+          userId: userId,
+          orderId: data['order_id'] ?? '',
+          plan: SubscriptionPlan.vip,
+          amount: amount,
+          status: PaymentStatus.pending,
+          snapToken: data['token'],
+          redirectUrl: data['redirect_url'],
+          createdAt: DateTime.now(),
+          metadata: {
+            'plan_type': planType,
+            'user_email': userEmail,
+            'user_name': userName,
+          },
+        );
       } else {
-        throw Exception('Failed to create payment: ${response.body}');
+        throw ApiException(
+          message: response.data['error'] ?? 'Failed to create payment',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
-      throw Exception('Error creating payment: $e');
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
     }
   }
 
   /// Check payment status
   Future<Payment> checkPaymentStatus({
     required String orderId,
-    String? token,
   }) async {
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/api/payments/$orderId'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
-      );
+      final response = await _apiClient.get('/payments/$orderId');
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        return Payment.fromJson(data['payment']);
+        final data = response.data['data'] ?? response.data;
+        return Payment.fromJson(data);
       } else {
-        throw Exception('Failed to check payment status: ${response.body}');
+        throw ApiException(
+          message: response.data['error'] ?? 'Failed to check payment status',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
-      throw Exception('Error checking payment status: $e');
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
     }
   }
 
   /// Get user's payment history
   Future<List<Payment>> getPaymentHistory({
     required String userId,
-    String? token,
   }) async {
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/api/payments/history?user_id=$userId'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
-      );
+      final response = await _apiClient.get('/payments/history');
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final List<dynamic> paymentsJson = data['payments'];
+        final List<dynamic> paymentsJson = response.data['data'] ?? [];
         return paymentsJson.map((json) => Payment.fromJson(json)).toList();
       } else {
-        throw Exception('Failed to get payment history: ${response.body}');
+        throw ApiException(
+          message: response.data['error'] ?? 'Failed to get payment history',
+          statusCode: response.statusCode,
+        );
       }
-    } catch (e) {
-      throw Exception('Error getting payment history: $e');
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
     }
   }
 
   /// Cancel pending payment
-  Future<bool> cancelPayment({required String orderId, String? token}) async {
+  Future<bool> cancelPayment({required String orderId}) async {
     try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/api/payments/$orderId/cancel'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
-      );
-
+      final response = await _apiClient.post('/payments/$orderId/cancel');
       return response.statusCode == 200;
-    } catch (e) {
-      throw Exception('Error cancelling payment: $e');
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
     }
   }
 
-  // Helper methods
-  static int _getPlanAmount(SubscriptionPlan plan) {
-    switch (plan) {
-      case SubscriptionPlan.vip:
-        return vipMonthlyPrice;
-      case SubscriptionPlan.free:
-        return 0;
-    }
-  }
-
-  static String _planToString(SubscriptionPlan plan) {
-    switch (plan) {
-      case SubscriptionPlan.vip:
-        return 'vip';
-      case SubscriptionPlan.free:
-        return 'free';
-    }
+  // Helper method to get price by plan type
+  static int getPriceByPlan(String planType) {
+    return planType == 'yearly' ? vipYearlyPrice : vipMonthlyPrice;
   }
 }

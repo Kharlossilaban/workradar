@@ -67,8 +67,9 @@ class TaskApiService {
 
       if (description != null) data['description'] = description;
       if (categoryId != null) data['category_id'] = categoryId;
-      if (deadline != null)
+      if (deadline != null) {
         data['deadline'] = deadline.toUtc().toIso8601String();
+      }
       if (reminderMinutes != null) data['reminder_minutes'] = reminderMinutes;
       if (repeatType != 'none') {
         data['repeat_type'] = repeatType;
@@ -112,13 +113,15 @@ class TaskApiService {
       if (title != null) data['title'] = title;
       if (description != null) data['description'] = description;
       if (categoryId != null) data['category_id'] = categoryId;
-      if (deadline != null)
+      if (deadline != null) {
         data['deadline'] = deadline.toUtc().toIso8601String();
+      }
       if (reminderMinutes != null) data['reminder_minutes'] = reminderMinutes;
       if (repeatType != null) data['repeat_type'] = repeatType;
       if (repeatInterval != null) data['repeat_interval'] = repeatInterval;
-      if (repeatEndDate != null)
+      if (repeatEndDate != null) {
         data['repeat_end_date'] = repeatEndDate.toUtc().toIso8601String();
+      }
       if (isCompleted != null) data['is_completed'] = isCompleted;
 
       final response = await _apiClient.put('/tasks/$taskId', data: data);

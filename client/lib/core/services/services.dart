@@ -1,5 +1,4 @@
-/// Core Services - Export all API services
-library services;
+// Core Services - Export all API services
 
 export 'auth_api_service.dart';
 export 'task_api_service.dart';

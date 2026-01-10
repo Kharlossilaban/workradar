@@ -102,13 +102,13 @@ class _RepeatModalState extends State<RepeatModal> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: DropdownButton<int>(
-                    value: _repeatInterval,
+                    value: _repeatInterval.clamp(1, _getMaxInterval()),
                     isExpanded: true,
                     underline: const SizedBox(),
-                    items: List.generate(30, (index) => index + 1).map((num) {
+                    items: List.generate(_getMaxInterval(), (index) => index + 1).map((interval) {
                       return DropdownMenuItem(
-                        value: num,
-                        child: Text('$num ${_getIntervalUnit()}'),
+                        value: interval,
+                        child: Text('$interval ${_getIntervalUnit()}'),
                       );
                     }).toList(),
                     onChanged: (value) {
@@ -250,7 +250,11 @@ class _RepeatModalState extends State<RepeatModal> {
     return Expanded(
       child: GestureDetector(
         onTap: () {
-          setState(() => _repeatType = type);
+          setState(() {
+            _repeatType = type;
+            // Reset interval to 1 when changing type to avoid invalid values
+            _repeatInterval = 1;
+          });
         },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
@@ -284,6 +288,23 @@ class _RepeatModalState extends State<RepeatModal> {
         return 'bulan';
       default:
         return '';
+    }
+  }
+
+  // Get max interval based on repeat type
+  // Jam: 1-12, Harian: 1-30, Mingguan: 1-10, Bulanan: 1-12
+  int _getMaxInterval() {
+    switch (_repeatType) {
+      case RepeatType.hourly:
+        return 12; // Per 1-12 jam
+      case RepeatType.daily:
+        return 30; // Per 1-30 hari
+      case RepeatType.weekly:
+        return 10; // Per 1-10 minggu
+      case RepeatType.monthly:
+        return 12; // Per 1-12 bulan
+      default:
+        return 1;
     }
   }
 

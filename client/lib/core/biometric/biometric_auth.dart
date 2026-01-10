@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:flutter/services.dart';
 
@@ -44,10 +45,10 @@ class BiometricAuth {
         ),
       );
     } on PlatformException catch (e) {
-      print('[BiometricAuth] Error: ${e.message}');
+      debugPrint('[BiometricAuth] Error: ${e.message}');
       return false;
     } catch (e) {
-      print('[BiometricAuth] Unexpected error: $e');
+      debugPrint('[BiometricAuth] Unexpected error: $e');
       return false;
     }
   }
@@ -57,7 +58,7 @@ class BiometricAuth {
     try {
       await _auth.stopAuthentication();
     } catch (e) {
-      print('[BiometricAuth] Error stopping: $e');
+      debugPrint('[BiometricAuth] Error stopping: $e');
     }
   }
 }

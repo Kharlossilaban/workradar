@@ -304,6 +304,7 @@ func main() {
 	weather := api.Group("/weather", middleware.AuthMiddleware(), middleware.VIPMiddleware())
 	weather.Get("/current", weatherHandler.GetCurrentWeather)
 	weather.Get("/forecast", weatherHandler.GetForecast)
+	weather.Get("/hourly", weatherHandler.GetHourlyForecast)
 
 	// Protected routes - Notifications
 	notifications := api.Group("/notifications", middleware.AuthMiddleware())

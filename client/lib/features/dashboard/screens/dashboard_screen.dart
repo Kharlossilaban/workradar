@@ -67,46 +67,54 @@ class _DashboardScreenState extends State<DashboardScreen> {
       return;
     }
 
+    final taskProvider = context.read<TaskProvider>();
+    final workloadProvider = context.read<WorkloadProvider>();
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => TaskInputModal(
-        onTaskCreated: (task) async {
-          try {
-            await context.read<TaskProvider>().addTaskToServer(task);
+      builder: (dialogContext) {
+        final dialogNavigator = Navigator.of(dialogContext);
+        return TaskInputModal(
+          onTaskCreated: (task) async {
+            try {
+              await taskProvider.addTaskToServer(task);
 
-            if (!mounted) return;
+              if (!mounted) return;
 
-            // Auto-update workload when task is added
-            if (task.deadline != null &&
-                task.durationMinutes != null &&
-                task.durationMinutes! > 0) {
-              context.read<WorkloadProvider>().recordScheduledTask(
-                task.deadline!,
-                duration: task.durationMinutes!,
+              // Auto-update workload when task is added
+              if (task.deadline != null &&
+                  task.durationMinutes != null &&
+                  task.durationMinutes! > 0) {
+                workloadProvider.recordScheduledTask(
+                  task.deadline!,
+                  duration: task.durationMinutes!,
+                );
+              }
+
+              if (!mounted) return;
+              dialogNavigator.pop();
+            } catch (e) {
+              if (!mounted) return;
+              scaffoldMessenger.showSnackBar(
+                SnackBar(
+                  content: Text('Gagal membuat tugas: $e'),
+                  backgroundColor: Colors.red,
+                ),
               );
             }
-
-            Navigator.pop(context);
-          } catch (e) {
-            if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Gagal membuat tugas: $e'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        },
-      ),
+          },
+        );
+      },
     );
   }
 
   void _showWorkHoursWarning() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Row(
           children: [
@@ -169,18 +177,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _onTaskTap(Task task) {
+    final taskProvider = context.read<TaskProvider>();
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => EditTaskScreen(
+        builder: (navContext) => EditTaskScreen(
           task: task,
           onTaskUpdated: (updatedTask) async {
             try {
-              await context.read<TaskProvider>().updateTaskOnServer(
-                updatedTask,
-              );
+              await taskProvider.updateTaskOnServer(updatedTask);
             } catch (e) {
-              ScaffoldMessenger.of(context).showSnackBar(
+              scaffoldMessenger.showSnackBar(
                 SnackBar(
                   content: Text('Gagal memperbarui tugas: $e'),
                   backgroundColor: Colors.red,
@@ -190,9 +199,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           },
           onTaskDeleted: () async {
             try {
-              await context.read<TaskProvider>().deleteTaskFromServer(task.id);
+              await taskProvider.deleteTaskFromServer(task.id);
             } catch (e) {
-              ScaffoldMessenger.of(context).showSnackBar(
+              scaffoldMessenger.showSnackBar(
                 SnackBar(
                   content: Text('Gagal menghapus tugas: $e'),
                   backgroundColor: Colors.red,

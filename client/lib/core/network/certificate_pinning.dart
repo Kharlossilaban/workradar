@@ -1,11 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 import 'package:workradar/core/config/environment.dart';
 import 'package:workradar/core/network/auth_interceptor.dart';
 
@@ -24,7 +22,7 @@ class CertificatePinningConfig {
   /// Format: "sha256/BASE64_ENCODED_HASH"
   ///
   /// Cara mendapatkan hash:
-  /// 1. Download certificate: openssl s_client -connect api.workradar.com:443 </dev/null 2>/dev/null | openssl x509 -outform DER > cert.der
+  /// 1. Download certificate: openssl s_client -connect api.workradar.com:443 &lt;/dev/null 2>/dev/null | openssl x509 -outform DER > cert.der
   /// 2. Get public key: openssl x509 -inform DER -in cert.der -pubkey -noout > pubkey.pem
   /// 3. Get hash: openssl pkey -pubin -in pubkey.pem -outform DER | openssl dgst -sha256 -binary | base64
   static const List<String> pinnedCertificateHashes = [
