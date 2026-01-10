@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"log"
 	"time"
 
 	"github.com/workradar/server/internal/models"
@@ -172,16 +173,52 @@ func (s *TaskService) DeleteTask(userID, taskID string) error {
 }
 
 // ToggleTaskComplete toggle status completed task
+// For repeating tasks: marks current as complete and creates next occurrence
 func (s *TaskService) ToggleTaskComplete(userID, taskID string) (*models.Task, error) {
 	task, err := s.GetTaskByID(userID, taskID)
 	if err != nil {
 		return nil, err
 	}
 
+	// Toggle completion status
 	task.IsCompleted = !task.IsCompleted
 	if task.IsCompleted {
 		now := time.Now()
 		task.CompletedAt = &now
+
+		// If this is a repeating task that's being completed, create next occurrence
+		if task.RepeatType != models.RepeatNone && task.Deadline != nil {
+			nextDeadline := s.calculateNextDeadline(*task.Deadline, task.RepeatType, task.RepeatInterval)
+
+			// Check if next deadline is before repeat end date (if set)
+			shouldCreateNext := true
+			if task.RepeatEndDate != nil && nextDeadline.After(*task.RepeatEndDate) {
+				shouldCreateNext = false
+			}
+
+			if shouldCreateNext {
+				// Create new task for next occurrence
+				newTask := &models.Task{
+					UserID:          task.UserID,
+					CategoryID:      task.CategoryID,
+					Title:           task.Title,
+					Description:     task.Description,
+					Deadline:        &nextDeadline,
+					ReminderMinutes: task.ReminderMinutes,
+					DurationMinutes: task.DurationMinutes,
+					RepeatType:      task.RepeatType,
+					RepeatInterval:  task.RepeatInterval,
+					RepeatEndDate:   task.RepeatEndDate,
+					IsCompleted:     false,
+					CompletedAt:     nil,
+				}
+
+				if err := s.taskRepo.Create(newTask); err != nil {
+					// Log error but don't fail the completion
+					log.Printf("⚠️ Failed to create next repeat task: %v", err)
+				}
+			}
+		}
 	} else {
 		task.CompletedAt = nil
 	}
@@ -191,6 +228,22 @@ func (s *TaskService) ToggleTaskComplete(userID, taskID string) (*models.Task, e
 	}
 
 	return task, nil
+}
+
+// calculateNextDeadline calculates the next deadline based on repeat type and interval
+func (s *TaskService) calculateNextDeadline(current time.Time, repeatType models.RepeatType, interval int) time.Time {
+	switch repeatType {
+	case models.RepeatHourly:
+		return current.Add(time.Duration(interval) * time.Hour)
+	case models.RepeatDaily:
+		return current.AddDate(0, 0, interval)
+	case models.RepeatWeekly:
+		return current.AddDate(0, 0, 7*interval)
+	case models.RepeatMonthly:
+		return current.AddDate(0, interval, 0)
+	default:
+		return current
+	}
 }
 
 // DTOs (Data Transfer Objects)

@@ -159,25 +159,28 @@ class _TaskInputModalState extends State<TaskInputModal> {
 
             Divider(height: 1, color: dividerColor),
 
-            // Action row
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              child: Row(
-                children: [
-                  // Category dropdown
-                  PopupMenuButton<String>(
-                    offset: const Offset(0, 40),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
+            // Action row - wrapped in SingleChildScrollView to prevent overflow
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Category dropdown
+                    PopupMenuButton<String>(
+                      offset: const Offset(0, 40),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      decoration: BoxDecoration(
-                        color: _selectedCategory != null
-                            ? _getCategoryColor().withValues(alpha: 0.1)
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _selectedCategory != null
+                              ? _getCategoryColor().withValues(alpha: 0.1)
                             : hintColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
@@ -323,7 +326,7 @@ class _TaskInputModalState extends State<TaskInputModal> {
                     },
                   ),
 
-                  const Spacer(),
+                  const SizedBox(width: 16),
 
                   // Calendar button
                   IconButton(
@@ -357,6 +360,7 @@ class _TaskInputModalState extends State<TaskInputModal> {
                 ],
               ),
             ),
+          ),
           ],
         ),
       ),
