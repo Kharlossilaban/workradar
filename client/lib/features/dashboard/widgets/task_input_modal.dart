@@ -181,186 +181,190 @@ class _TaskInputModalState extends State<TaskInputModal> {
                         decoration: BoxDecoration(
                           color: _selectedCategory != null
                               ? _getCategoryColor().withValues(alpha: 0.1)
-                            : hintColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            _selectedCategory ?? 'Pilih Kategori',
-                            style: TextStyle(
+                              : hintColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _selectedCategory ?? 'Pilih Kategori',
+                              style: TextStyle(
+                                color: _selectedCategory != null
+                                    ? _getCategoryColor()
+                                    : hintColor,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.arrow_drop_down,
                               color: _selectedCategory != null
                                   ? _getCategoryColor()
                                   : hintColor,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Icon(
-                            Icons.arrow_drop_down,
-                            color: _selectedCategory != null
-                                ? _getCategoryColor()
-                                : hintColor,
-                            size: 20,
-                          ),
-                        ],
-                      ),
-                    ),
-                    itemBuilder: (context) => [
-                      ..._categories.map(
-                        (category) => PopupMenuItem(
-                          value: category,
-                          child: Text(category),
-                        ),
-                      ),
-                      const PopupMenuDivider(),
-                      PopupMenuItem(
-                        value: 'new',
-                        child: Row(
-                          children: [
-                            Icon(
-                              Iconsax.add,
                               size: 20,
-                              color: AppTheme.primaryColor,
                             ),
-                            const SizedBox(width: 8),
-                            const Text('Buat kategori baru'),
                           ],
                         ),
                       ),
-                    ],
-                    onSelected: (value) {
-                      if (value == 'new') {
-                        // Show create category dialog
-                        _showCreateCategoryDialog();
-                      } else {
-                        setState(() => _selectedCategory = value);
-
-                        // Auto-suggest workload for "Kerja"
-                        if (value == 'Kerja') {
-                          final profileProvider = context
-                              .read<ProfileProvider>();
-                          if (profileProvider.hasWorkHours) {
-                            setState(() {
-                              _selectedDifficulty = TaskDifficulty.focus;
-                            });
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Saran: Beban kegiatan diatur ke "Berat" karena Anda memiliki jadwal kerja',
-                                ),
-                                duration: Duration(seconds: 2),
+                      itemBuilder: (context) => [
+                        ..._categories.map(
+                          (category) => PopupMenuItem(
+                            value: category,
+                            child: Text(category),
+                          ),
+                        ),
+                        const PopupMenuDivider(),
+                        PopupMenuItem(
+                          value: 'new',
+                          child: Row(
+                            children: [
+                              Icon(
+                                Iconsax.add,
+                                size: 20,
+                                color: AppTheme.primaryColor,
                               ),
-                            );
+                              const SizedBox(width: 8),
+                              const Text('Buat kategori baru'),
+                            ],
+                          ),
+                        ),
+                      ],
+                      onSelected: (value) {
+                        if (value == 'new') {
+                          // Show create category dialog
+                          _showCreateCategoryDialog();
+                        } else {
+                          setState(() => _selectedCategory = value);
+
+                          // Auto-suggest workload for "Kerja"
+                          if (value == 'Kerja') {
+                            final profileProvider = context
+                                .read<ProfileProvider>();
+                            if (profileProvider.hasWorkHours) {
+                              setState(() {
+                                _selectedDifficulty = TaskDifficulty.focus;
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Saran: Beban kegiatan diatur ke "Berat" karena Anda memiliki jadwal kerja',
+                                  ),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            }
                           }
                         }
-                      }
-                    },
-                  ),
-
-                  const SizedBox(width: 8),
-
-                  // Difficulty dropdown
-                  PopupMenuButton<TaskDifficulty>(
-                    offset: const Offset(0, 40),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      },
                     ),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
+
+                    const SizedBox(width: 8),
+
+                    // Difficulty dropdown
+                    PopupMenuButton<TaskDifficulty>(
+                      offset: const Offset(0, 40),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      decoration: BoxDecoration(
-                        color: _selectedDifficulty != null
-                            ? Colors.amber.withValues(alpha: 0.1)
-                            : hintColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            _selectedDifficulty != null
-                                ? _getDifficultyLabel(_selectedDifficulty!)
-                                : 'Pilih Beban Kegiatan',
-                            style: TextStyle(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _selectedDifficulty != null
+                              ? Colors.amber.withValues(alpha: 0.1)
+                              : hintColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _selectedDifficulty != null
+                                  ? _getDifficultyLabel(_selectedDifficulty!)
+                                  : 'Pilih Beban Kegiatan',
+                              style: TextStyle(
+                                color: _selectedDifficulty != null
+                                    ? Colors.amber
+                                    : hintColor,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.arrow_drop_down,
                               color: _selectedDifficulty != null
                                   ? Colors.amber
                                   : hintColor,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
+                              size: 20,
                             ),
-                          ),
-                          const SizedBox(width: 4),
-                          Icon(
-                            Icons.arrow_drop_down,
-                            color: _selectedDifficulty != null
-                                ? Colors.amber
-                                : hintColor,
-                            size: 20,
-                          ),
-                        ],
-                      ),
-                    ),
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: TaskDifficulty.relaxed,
-                        child: Text(
-                          _getDifficultyLabel(TaskDifficulty.relaxed),
+                          ],
                         ),
                       ),
-                      PopupMenuItem(
-                        value: TaskDifficulty.normal,
-                        child: Text(_getDifficultyLabel(TaskDifficulty.normal)),
-                      ),
-                      PopupMenuItem(
-                        value: TaskDifficulty.focus,
-                        child: Text(_getDifficultyLabel(TaskDifficulty.focus)),
-                      ),
-                    ],
-                    onSelected: (value) {
-                      setState(() => _selectedDifficulty = value);
-                    },
-                  ),
-
-                  const SizedBox(width: 16),
-
-                  // Calendar button
-                  IconButton(
-                    onPressed: _showCalendarModal,
-                    icon: Icon(
-                      _deadline != null
-                          ? Iconsax.calendar_15
-                          : Iconsax.calendar,
-                      color: _deadline != null
-                          ? AppTheme.primaryColor
-                          : AppTheme.textLight,
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                          value: TaskDifficulty.relaxed,
+                          child: Text(
+                            _getDifficultyLabel(TaskDifficulty.relaxed),
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: TaskDifficulty.normal,
+                          child: Text(
+                            _getDifficultyLabel(TaskDifficulty.normal),
+                          ),
+                        ),
+                        PopupMenuItem(
+                          value: TaskDifficulty.focus,
+                          child: Text(
+                            _getDifficultyLabel(TaskDifficulty.focus),
+                          ),
+                        ),
+                      ],
+                      onSelected: (value) {
+                        setState(() => _selectedDifficulty = value);
+                      },
                     ),
-                  ),
 
-                  // Send button
-                  IconButton(
-                    onPressed: _createTask,
-                    icon: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryColor,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Iconsax.send_1,
-                        color: Colors.white,
-                        size: 20,
+                    const SizedBox(width: 16),
+
+                    // Calendar button
+                    IconButton(
+                      onPressed: _showCalendarModal,
+                      icon: Icon(
+                        _deadline != null
+                            ? Iconsax.calendar_15
+                            : Iconsax.calendar,
+                        color: _deadline != null
+                            ? AppTheme.primaryColor
+                            : AppTheme.textLight,
                       ),
                     ),
-                  ),
-                ],
+
+                    // Send button
+                    IconButton(
+                      onPressed: _createTask,
+                      icon: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Iconsax.send_1,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
           ],
         ),
       ),
