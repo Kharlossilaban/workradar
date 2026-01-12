@@ -40,7 +40,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Load profile and stats from server
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      
+
       final profileProvider = context.read<ProfileProvider>();
       final taskProvider = context.read<TaskProvider>();
       final workloadProvider = context.read<WorkloadProvider>();
@@ -92,9 +92,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 20),
               _buildQuickActionsSection(isDarkMode),
               const SizedBox(height: 20),
-              _buildCompletedTasksCard(isDarkMode), // Tugas Selesai - dengan 2 kartu di bawahnya
+              _buildCompletedTasksCard(
+                isDarkMode,
+              ), // Tugas Selesai - dengan 2 kartu di bawahnya
               const SizedBox(height: 20),
-              _buildWorkloadCard(isDarkMode), // Beban Kerja - dengan 2 kartu di bawahnya
+              _buildWorkloadCard(
+                isDarkMode,
+              ), // Beban Kerja - dengan 2 kartu di bawahnya
               const SizedBox(height: 20),
               _buildLogoutButton(isDarkMode),
               const SizedBox(height: 30),
@@ -288,7 +292,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (context, provider, taskProvider, child) {
         // Calculate workload stats based on selected period
         final workloadStats = _calculateWorkloadStats(taskProvider, provider);
-        
+
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 16),
           padding: const EdgeInsets.all(20),
@@ -362,9 +366,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               // Chart
               SizedBox(height: 200, child: _buildChart(provider, isDarkMode)),
-              
+
               const SizedBox(height: 20),
-              
+
               // Stats cards below chart
               Row(
                 children: [
@@ -397,19 +401,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
       },
     );
   }
-  
-  Map<String, String> _calculateWorkloadStats(TaskProvider taskProvider, WorkloadProvider workloadProvider) {
+
+  Map<String, String> _calculateWorkloadStats(
+    TaskProvider taskProvider,
+    WorkloadProvider workloadProvider,
+  ) {
     List<Task> filteredTasks = [];
-    
+    Map<String, int> dailyWorkMinutes = {}; // Track work hours per day
+
     switch (_selectedPeriod) {
       case 'Daily':
         // Get tasks for the current week displayed
         final weekStart = workloadProvider.getWeekStartDate();
-        final weekEnd = weekStart.add(const Duration(days: 6, hours: 23, minutes: 59, seconds: 59));
+        final weekEnd = weekStart.add(
+          const Duration(days: 6, hours: 23, minutes: 59, seconds: 59),
+        );
         filteredTasks = taskProvider.tasks.where((t) {
           if (t.deadline == null) return false;
-          return t.deadline!.isAfter(weekStart.subtract(const Duration(days: 1))) && 
-                 t.deadline!.isBefore(weekEnd.add(const Duration(days: 1)));
+          return t.deadline!.isAfter(
+                weekStart.subtract(const Duration(days: 1)),
+              ) &&
+              t.deadline!.isBefore(weekEnd.add(const Duration(days: 1)));
         }).toList();
         break;
       case 'Weekly':
@@ -418,7 +430,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         filteredTasks = taskProvider.tasks.where((t) {
           if (t.deadline == null) return false;
           return t.deadline!.year == monthDate.year &&
-                 t.deadline!.month == monthDate.month;
+              t.deadline!.month == monthDate.month;
         }).toList();
         break;
       case 'Monthly':
@@ -430,15 +442,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }).toList();
         break;
     }
-    
-    // Calculate total workload (pending tasks)
-    int totalWorkloadMinutes = 0;
+
+    // Group tasks by date and calculate daily work hours
     for (var task in filteredTasks) {
-      if (!task.isCompleted && task.durationMinutes != null) {
-        totalWorkloadMinutes += task.durationMinutes!;
+      if (task.deadline != null && task.durationMinutes != null) {
+        final dateKey =
+            '${task.deadline!.year}-${task.deadline!.month.toString().padLeft(2, '0')}-${task.deadline!.day.toString().padLeft(2, '0')}';
+        dailyWorkMinutes[dateKey] =
+            (dailyWorkMinutes[dateKey] ?? 0) + task.durationMinutes!;
       }
     }
-    
+
+    // Calculate workload level based on daily hours
+    int heavyDays = 0;
+    int normalDays = 0;
+    int lightDays = 0;
+
+    for (var dailyMinutes in dailyWorkMinutes.values) {
+      final dailyHours = dailyMinutes / 60;
+      if (dailyHours >= 13) {
+        heavyDays++;
+      } else if (dailyHours >= 8) {
+        normalDays++;
+      } else if (dailyHours > 0) {
+        lightDays++;
+      }
+    }
+
+    // Determine overall workload status
+    String workloadValue;
+    if (heavyDays > 0) {
+      workloadValue = 'Berat ($heavyDays hari)';
+    } else if (normalDays > 0) {
+      workloadValue = 'Sedang ($normalDays hari)';
+    } else if (lightDays > 0) {
+      workloadValue = 'Ringan ($lightDays hari)';
+    } else {
+      workloadValue = 'Tidak ada';
+    }
+
     // Calculate total work hours done (completed tasks)
     int totalWorkHoursMinutes = 0;
     for (var task in filteredTasks) {
@@ -446,19 +488,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         totalWorkHoursMinutes += task.durationMinutes!;
       }
     }
-    
-    // Format workload
-    final wlHours = totalWorkloadMinutes ~/ 60;
-    final wlMins = totalWorkloadMinutes % 60;
-    String workloadValue;
-    if (wlHours > 0 && wlMins > 0) {
-      workloadValue = '${wlHours}j ${wlMins}m';
-    } else if (wlHours > 0) {
-      workloadValue = '${wlHours} jam';
-    } else {
-      workloadValue = '${wlMins} menit';
-    }
-    
+
     // Format work hours
     final whHours = totalWorkHoursMinutes ~/ 60;
     final whMins = totalWorkHoursMinutes % 60;
@@ -470,11 +500,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } else {
       workHoursValue = '${whMins} menit';
     }
-    
-    return {
-      'workloadValue': workloadValue,
-      'workHoursValue': workHoursValue,
-    };
+
+    return {'workloadValue': workloadValue, 'workHoursValue': workHoursValue};
   }
 
   Widget _buildDateRangeNavigation(WorkloadProvider provider, bool isDarkMode) {
@@ -805,7 +832,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   ) async {
     final isFirstTimeSetup = !provider.hasWorkHours;
     final navigator = Navigator.of(context);
-    
+
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -885,8 +912,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required bool isDarkMode,
     required Color textPrimaryColor,
   }) {
-    final miniCardColor = isDarkMode 
-        ? AppTheme.darkDivider.withValues(alpha: 0.3) 
+    final miniCardColor = isDarkMode
+        ? AppTheme.darkDivider.withValues(alpha: 0.3)
         : Colors.grey.shade50;
     final textSecondaryColor = isDarkMode
         ? AppTheme.darkTextSecondary
@@ -951,7 +978,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (context, provider, taskProvider, child) {
         // Calculate task stats based on selected period
         final taskStats = _calculateTaskStats(taskProvider, provider);
-        
+
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 16),
           padding: const EdgeInsets.all(20),
@@ -1032,9 +1059,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 height: 200,
                 child: _buildCompletedChart(provider, isDarkMode),
               ),
-              
+
               const SizedBox(height: 20),
-              
+
               // Stats cards below chart
               Row(
                 children: [
@@ -1067,19 +1094,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
       },
     );
   }
-  
-  Map<String, int> _calculateTaskStats(TaskProvider taskProvider, CompletedTasksProvider completedProvider) {
+
+  Map<String, int> _calculateTaskStats(
+    TaskProvider taskProvider,
+    CompletedTasksProvider completedProvider,
+  ) {
     List<Task> filteredTasks = [];
-    
+
     switch (_selectedCompletedPeriod) {
       case 'Daily':
         // Get tasks for the current week displayed
         final weekStart = completedProvider.getWeekStartDate();
-        final weekEnd = weekStart.add(const Duration(days: 6, hours: 23, minutes: 59, seconds: 59));
+        final weekEnd = weekStart.add(
+          const Duration(days: 6, hours: 23, minutes: 59, seconds: 59),
+        );
         filteredTasks = taskProvider.tasks.where((t) {
           if (t.deadline == null) return false;
-          return t.deadline!.isAfter(weekStart.subtract(const Duration(days: 1))) && 
-                 t.deadline!.isBefore(weekEnd.add(const Duration(days: 1)));
+          return t.deadline!.isAfter(
+                weekStart.subtract(const Duration(days: 1)),
+              ) &&
+              t.deadline!.isBefore(weekEnd.add(const Duration(days: 1)));
         }).toList();
         break;
       case 'Weekly':
@@ -1088,7 +1122,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         filteredTasks = taskProvider.tasks.where((t) {
           if (t.deadline == null) return false;
           return t.deadline!.year == monthDate.year &&
-                 t.deadline!.month == monthDate.month;
+              t.deadline!.month == monthDate.month;
         }).toList();
         break;
       case 'Monthly':
@@ -1100,14 +1134,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }).toList();
         break;
     }
-    
+
     final totalTasks = filteredTasks.length;
     final completedTasks = filteredTasks.where((t) => t.isCompleted).length;
-    
-    return {
-      'totalTasks': totalTasks,
-      'completedTasks': completedTasks,
-    };
+
+    return {'totalTasks': totalTasks, 'completedTasks': completedTasks};
   }
 
   Widget _buildCompletedDateRangeNavigation(
