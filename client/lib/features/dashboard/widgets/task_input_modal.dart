@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/models/task.dart';
+import '../../../core/services/category_api_service.dart';
+import '../../../core/services/task_api_service.dart';
 import '../../profile/providers/profile_provider.dart';
 import 'calendar_modal.dart';
 
@@ -18,7 +20,10 @@ class TaskInputModal extends StatefulWidget {
 
 class _TaskInputModalState extends State<TaskInputModal> {
   final _titleController = TextEditingController();
+  final _categoryApiService = CategoryApiService();
+  
   String? _selectedCategory;
+  String? _selectedCategoryId; // Store the category ID from server
   DateTime? _deadline;
   int? _reminderMinutes;
   RepeatType _repeatType = RepeatType.none;
@@ -27,12 +32,37 @@ class _TaskInputModalState extends State<TaskInputModal> {
   TaskDifficulty? _selectedDifficulty;
   int? _durationMinutes;
 
-  final List<String> _categories = [
-    'Kerja',
-    'Pribadi',
-    'Wishlist',
-    'Hari Ulang Tahun',
-  ];
+  List<CategoryModel> _categories = [];
+  bool _isLoadingCategories = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      final categories = await _categoryApiService.getCategories();
+      setState(() {
+        _categories = categories;
+        _isLoadingCategories = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingCategories = false;
+      });
+      // If failed to load categories, create default ones or show error
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal memuat kategori: $e'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -84,6 +114,7 @@ class _TaskInputModalState extends State<TaskInputModal> {
     final task = Task(
       id: const Uuid().v4(),
       userId: 'current_user', // Will be replaced with actual user ID
+      categoryId: _selectedCategoryId, // Use categoryId from server
       categoryName: _selectedCategory!,
       title: _titleController.text.trim(),
       deadline: _deadline,
@@ -190,7 +221,9 @@ class _TaskInputModalState extends State<TaskInputModal> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            _selectedCategory ?? 'Pilih Kategori',
+                            _isLoadingCategories 
+                                ? 'Memuat...'
+                                : _selectedCategory ?? 'Pilih Kategori',
                             style: TextStyle(
                               color: _selectedCategory != null
                                   ? _getCategoryColor()
@@ -213,12 +246,12 @@ class _TaskInputModalState extends State<TaskInputModal> {
                     itemBuilder: (context) => [
                       ..._categories.map(
                         (category) => PopupMenuItem(
-                          value: category,
-                          child: Text(category),
+                          value: category.id,
+                          child: Text(category.name),
                         ),
                       ),
                       const PopupMenuDivider(),
-                      PopupMenuItem(
+                      const PopupMenuItem(
                         value: 'new',
                         child: Row(
                           children: [
@@ -227,8 +260,8 @@ class _TaskInputModalState extends State<TaskInputModal> {
                               size: 20,
                               color: AppTheme.primaryColor,
                             ),
-                            const SizedBox(width: 8),
-                            const Text('Buat kategori baru'),
+                            SizedBox(width: 8),
+                            Text('Buat kategori baru'),
                           ],
                         ),
                       ),
@@ -238,10 +271,17 @@ class _TaskInputModalState extends State<TaskInputModal> {
                         // Show create category dialog
                         _showCreateCategoryDialog();
                       } else {
-                        setState(() => _selectedCategory = value);
+                        // Find the selected category
+                        final category = _categories.firstWhere(
+                          (cat) => cat.id == value,
+                        );
+                        setState(() {
+                          _selectedCategoryId = category.id;
+                          _selectedCategory = category.name;
+                        });
 
                         // Auto-suggest workload for "Kerja"
-                        if (value == 'Kerja') {
+                        if (category.name == 'Kerja') {
                           final profileProvider = context
                               .read<ProfileProvider>();
                           if (profileProvider.hasWorkHours) {
@@ -408,6 +448,7 @@ class _TaskInputModalState extends State<TaskInputModal> {
           controller: controller,
           decoration: const InputDecoration(hintText: 'Nama kategori'),
           autofocus: true,
+          textCapitalization: TextCapitalization.words,
         ),
         actions: [
           TextButton(
@@ -415,13 +456,49 @@ class _TaskInputModalState extends State<TaskInputModal> {
             child: const Text('Batal'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               if (controller.text.trim().isNotEmpty) {
-                setState(() {
-                  _categories.add(controller.text.trim());
-                  _selectedCategory = controller.text.trim();
-                });
                 Navigator.pop(context);
+                
+                // Show loading
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Membuat kategori baru...'),
+                    duration: Duration(seconds: 1),
+                  ),
+                );
+
+                try {
+                  // Create category via API
+                  final newCategory = await _categoryApiService.createCategory(
+                    name: controller.text.trim(),
+                    color: _getRandomColor(), // Generate random color
+                  );
+
+                  // Add to local list
+                  setState(() {
+                    _categories.add(newCategory);
+                    _selectedCategoryId = newCategory.id;
+                    _selectedCategory = newCategory.name;
+                  });
+
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Kategori "${newCategory.name}" berhasil dibuat'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                } catch (e) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Gagal membuat kategori: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               }
             },
             child: const Text('Simpan'),
@@ -429,5 +506,21 @@ class _TaskInputModalState extends State<TaskInputModal> {
         ],
       ),
     );
+  }
+
+  String _getRandomColor() {
+    // Generate random color for new category
+    final colors = [
+      '#6C5CE7', // Purple
+      '#00B894', // Green
+      '#0984E3', // Blue
+      '#FD79A8', // Pink
+      '#FDCB6E', // Yellow
+      '#E17055', // Orange
+      '#74B9FF', // Light Blue
+      '#A29BFE', // Lavender
+    ];
+    colors.shuffle();
+    return colors.first;
   }
 }
