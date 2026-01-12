@@ -31,17 +31,24 @@ func NewPaymentService(
 ) *PaymentService {
 	// Initialize Midtrans Snap Client
 	var s snap.Client
-	s.New(config.AppConfig.MidtransServerKey, midtrans.Sandbox)
-	if config.AppConfig.MidtransIsProduction {
-		s.New(config.AppConfig.MidtransServerKey, midtrans.Production)
-	}
-
-	// Initialize Midtrans Core API Client (for checking status)
 	var c coreapi.Client
-	c.New(config.AppConfig.MidtransServerKey, midtrans.Sandbox)
-	if config.AppConfig.MidtransIsProduction {
-		c.New(config.AppConfig.MidtransServerKey, midtrans.Production)
+	
+	// Validate server key
+	if config.AppConfig.MidtransServerKey == "" {
+		log.Fatal("MIDTRANS_SERVER_KEY is not set in environment variables")
 	}
+	
+	// Set environment based on production flag
+	env := midtrans.Sandbox
+	if config.AppConfig.MidtransIsProduction {
+		env = midtrans.Production
+	}
+	
+	// Initialize clients with proper environment
+	s.New(config.AppConfig.MidtransServerKey, env)
+	c.New(config.AppConfig.MidtransServerKey, env)
+	
+	log.Printf("Midtrans initialized in %v mode", env)
 
 	return &PaymentService{
 		transactionRepo:   transactionRepo,
