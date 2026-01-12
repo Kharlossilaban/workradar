@@ -85,15 +85,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               if (!mounted) return;
 
-              // Auto-update workload when task is added
-              if (task.deadline != null &&
-                  task.durationMinutes != null &&
-                  task.durationMinutes! > 0) {
-                workloadProvider.recordScheduledTask(
-                  task.deadline!,
-                  duration: task.durationMinutes!,
-                );
-              }
+              // Refresh workload data from all tasks after adding new task
+              workloadProvider.syncFromTasks(taskProvider.tasks);
 
               if (!mounted) return;
               dialogNavigator.pop();
@@ -148,20 +141,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _onTaskComplete(Task task) async {
+    final taskProvider = context.read<TaskProvider>();
     final workloadProvider = context.read<WorkloadProvider>();
     final completedTasksProvider = context.read<CompletedTasksProvider>();
 
     try {
-      await context.read<TaskProvider>().toggleTaskCompletionOnServer(
+      await taskProvider.toggleTaskCompletionOnServer(
         task.id,
         onCompleted: (_) {
-          // Record task completion in workload graph using task deadline
-          final date = task.deadline ?? DateTime.now();
-          workloadProvider.recordTaskCompletion(
-            date,
-            duration: task.durationMinutes ?? 0,
-          );
+          // Refresh workload data from all tasks (no need to manually record)
+          workloadProvider.syncFromTasks(taskProvider.tasks);
           // Record completed task in completed tasks provider
+          final date = task.deadline ?? DateTime.now();
           completedTasksProvider.recordTaskCompletion(date);
         },
       );
@@ -179,6 +170,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _onTaskTap(Task task) {
     final taskProvider = context.read<TaskProvider>();
+    final workloadProvider = context.read<WorkloadProvider>();
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     Navigator.push(
@@ -189,6 +181,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           onTaskUpdated: (updatedTask) async {
             try {
               await taskProvider.updateTaskOnServer(updatedTask);
+              // Refresh workload after update
+              workloadProvider.syncFromTasks(taskProvider.tasks);
             } catch (e) {
               scaffoldMessenger.showSnackBar(
                 SnackBar(
@@ -201,6 +195,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
           onTaskDeleted: () async {
             try {
               await taskProvider.deleteTaskFromServer(task.id);
+              // Refresh workload after delete
+              workloadProvider.syncFromTasks(taskProvider.tasks);
             } catch (e) {
               scaffoldMessenger.showSnackBar(
                 SnackBar(
