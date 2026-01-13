@@ -38,21 +38,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    // Load tasks from server on init
+    // Load tasks and categories from server on init
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadTasks();
+      _loadData();
     });
   }
 
-  Future<void> _loadTasks() async {
+  Future<void> _loadData() async {
     final taskProvider = context.read<TaskProvider>();
+    final categoryProvider = context.read<CategoryProvider>();
+
     try {
-      await taskProvider.loadTasksFromServer();
+      // Load both tasks and categories in parallel
+      await Future.wait([
+        taskProvider.loadTasksFromServer(),
+        categoryProvider.loadCategories(),
+      ]);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Gagal memuat tugas: $e'),
+            content: Text('Gagal memuat data: $e'),
             backgroundColor: Colors.red,
           ),
         );

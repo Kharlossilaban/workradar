@@ -217,28 +217,29 @@ class TaskModel {
       categoryId: json['category_id'],
       title: json['title'] ?? '',
       description: json['description'],
+      // Convert UTC time from server to local timezone
       deadline: json['deadline'] != null
-          ? DateTime.parse(json['deadline'])
+          ? DateTime.parse(json['deadline']).toLocal()
           : null,
       reminderMinutes: json['reminder_minutes'],
       repeatType: json['repeat_type'] ?? 'none',
       repeatInterval: json['repeat_interval'] ?? 1,
       repeatEndDate: json['repeat_end_date'] != null
-          ? DateTime.parse(json['repeat_end_date'])
+          ? DateTime.parse(json['repeat_end_date']).toLocal()
           : null,
       isCompleted: json['is_completed'] ?? false,
       completedAt: json['completed_at'] != null
-          ? DateTime.parse(json['completed_at'])
+          ? DateTime.parse(json['completed_at']).toLocal()
           : null,
       category: json['category'] != null
           ? CategoryModel.fromJson(json['category'])
           : null,
       createdAt: DateTime.parse(
         json['created_at'] ?? DateTime.now().toIso8601String(),
-      ),
+      ).toLocal(),
       updatedAt: DateTime.parse(
         json['updated_at'] ?? DateTime.now().toIso8601String(),
-      ),
+      ).toLocal(),
     );
   }
 

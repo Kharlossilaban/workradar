@@ -337,11 +337,20 @@ class ManageCategoryScreen extends StatelessWidget {
   ) {
     showDialog(
       context: context,
-      builder: (context) => EditCategoryDialog(
+      builder: (dialogContext) => EditCategoryDialog(
         initialName: category.name,
-        onSave: (newName) {
-          categoryProvider.editCategory(category.id, newName);
-          _showSnackBar(context, 'Kategori berhasil diubah');
+        onSave: (newName) async {
+          Navigator.pop(dialogContext);
+          try {
+            await categoryProvider.editCategory(category.id, newName);
+            if (context.mounted) {
+              _showSnackBar(context, 'Kategori berhasil diubah');
+            }
+          } catch (e) {
+            if (context.mounted) {
+              _showSnackBar(context, 'Gagal mengubah kategori: $e');
+            }
+          }
         },
       ),
     );
@@ -353,10 +362,19 @@ class ManageCategoryScreen extends StatelessWidget {
   ) {
     showDialog(
       context: context,
-      builder: (context) => EditCategoryDialog(
-        onSave: (name) {
-          categoryProvider.addCategory(name);
-          _showSnackBar(context, 'Kategori baru berhasil dibuat');
+      builder: (dialogContext) => EditCategoryDialog(
+        onSave: (name) async {
+          Navigator.pop(dialogContext);
+          try {
+            await categoryProvider.addCategory(name);
+            if (context.mounted) {
+              _showSnackBar(context, 'Kategori baru berhasil dibuat');
+            }
+          } catch (e) {
+            if (context.mounted) {
+              _showSnackBar(context, 'Gagal membuat kategori: $e');
+            }
+          }
         },
       ),
     );
@@ -369,7 +387,7 @@ class ManageCategoryScreen extends StatelessWidget {
   ) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Hapus Kategori'),
         content: Text(
           'Apakah Anda yakin ingin menghapus kategori "${category.name}"? '
@@ -377,14 +395,22 @@ class ManageCategoryScreen extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Batal'),
           ),
           ElevatedButton(
-            onPressed: () {
-              categoryProvider.deleteCategory(category.id);
-              Navigator.pop(context);
-              _showSnackBar(context, 'Kategori berhasil dihapus');
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              try {
+                await categoryProvider.deleteCategory(category.id);
+                if (context.mounted) {
+                  _showSnackBar(context, 'Kategori berhasil dihapus');
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  _showSnackBar(context, 'Gagal menghapus kategori: $e');
+                }
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.errorColor,

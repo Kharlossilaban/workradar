@@ -1,19 +1,17 @@
 import 'package:flutter/foundation.dart' hide Category;
 import '../models/category.dart';
 import '../models/task.dart';
+import '../services/category_api_service.dart';
 
 class CategoryProvider extends ChangeNotifier {
-  final List<Category> _categories = [
-    Category(id: 'cat_1', userId: 'user_1', name: 'Kerja', isDefault: true),
-    Category(id: 'cat_2', userId: 'user_1', name: 'Pribadi', isDefault: true),
-    Category(id: 'cat_3', userId: 'user_1', name: 'Wishlist', isDefault: true),
-    Category(
-      id: 'cat_4',
-      userId: 'user_1',
-      name: 'Hari Ulang Tahun',
-      isDefault: true,
-    ),
-  ];
+  final CategoryApiService _categoryApiService = CategoryApiService();
+
+  List<Category> _categories = [];
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
 
   List<Category> get categories =>
       List.unmodifiable(_categories.where((cat) => !cat.isHidden).toList());
@@ -29,33 +27,100 @@ class CategoryProvider extends ChangeNotifier {
     return names;
   }
 
+  /// Load categories from server
+  Future<void> loadCategories() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final categoryModels = await _categoryApiService.getCategories();
+      _categories = categoryModels
+          .map(
+            (model) => Category(
+              id: model.id,
+              userId: model.userId,
+              name: model.name,
+              isDefault: model.isDefault,
+            ),
+          )
+          .toList();
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = 'Gagal memuat kategori: $e';
+      notifyListeners();
+    }
+  }
+
+  /// Refresh categories from server
+  Future<void> refreshCategories() async {
+    await loadCategories();
+  }
+
   /// Get task count for a specific category
   int getTaskCountForCategory(String categoryName, List<Task> tasks) {
     return tasks.where((task) => task.categoryName == categoryName).length;
   }
 
-  /// Add a new category
-  void addCategory(String name) {
-    final newCategory = Category(
-      id: 'cat_${DateTime.now().millisecondsSinceEpoch}',
-      userId: 'user_1',
-      name: name,
-      isDefault: false,
-    );
-    _categories.add(newCategory);
-    notifyListeners();
-  }
+  /// Add a new category (to server and local)
+  Future<void> addCategory(String name) async {
+    try {
+      final newCategoryModel = await _categoryApiService.createCategory(
+        name: name,
+        color: _getRandomColor(),
+      );
 
-  /// Edit category name
-  void editCategory(String id, String newName) {
-    final index = _categories.indexWhere((cat) => cat.id == id);
-    if (index != -1) {
-      _categories[index] = _categories[index].copyWith(name: newName);
+      _categories.add(
+        Category(
+          id: newCategoryModel.id,
+          userId: newCategoryModel.userId,
+          name: newCategoryModel.name,
+          isDefault: false,
+        ),
+      );
       notifyListeners();
+    } catch (e) {
+      _errorMessage = 'Gagal menambah kategori: $e';
+      notifyListeners();
+      rethrow;
     }
   }
 
-  /// Hide/Unhide category
+  String _getRandomColor() {
+    final colors = [
+      '#6C5CE7',
+      '#00B894',
+      '#0984E3',
+      '#FD79A8',
+      '#FDCB6E',
+      '#E17055',
+      '#74B9FF',
+      '#A29BFE',
+    ];
+    colors.shuffle();
+    return colors.first;
+  }
+
+  /// Edit category name
+  Future<void> editCategory(String id, String newName) async {
+    try {
+      await _categoryApiService.updateCategory(categoryId: id, name: newName);
+
+      final index = _categories.indexWhere((cat) => cat.id == id);
+      if (index != -1) {
+        _categories[index] = _categories[index].copyWith(name: newName);
+        notifyListeners();
+      }
+    } catch (e) {
+      _errorMessage = 'Gagal mengedit kategori: $e';
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  /// Hide/Unhide category (local only for now)
   void toggleHideCategory(String id) {
     final index = _categories.indexWhere((cat) => cat.id == id);
     if (index != -1) {
@@ -67,9 +132,16 @@ class CategoryProvider extends ChangeNotifier {
   }
 
   /// Delete category
-  void deleteCategory(String id) {
-    _categories.removeWhere((cat) => cat.id == id);
-    notifyListeners();
+  Future<void> deleteCategory(String id) async {
+    try {
+      await _categoryApiService.deleteCategory(id);
+      _categories.removeWhere((cat) => cat.id == id);
+      notifyListeners();
+    } catch (e) {
+      _errorMessage = 'Gagal menghapus kategori: $e';
+      notifyListeners();
+      rethrow;
+    }
   }
 
   /// Check if category can be deleted (not default)
