@@ -3,6 +3,8 @@ import 'package:iconsax/iconsax.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/models/task.dart';
+import '../../../core/services/category_api_service.dart';
+import '../../../core/services/task_api_service.dart';
 import '../../dashboard/widgets/calendar_modal.dart';
 
 class EditTaskScreen extends StatefulWidget {
@@ -23,6 +25,7 @@ class EditTaskScreen extends StatefulWidget {
 
 class _EditTaskScreenState extends State<EditTaskScreen> {
   late String _selectedCategory;
+  late String? _selectedCategoryId;
   late String _title;
   late DateTime? _deadline;
   late int? _reminderMinutes;
@@ -32,17 +35,15 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
   late TaskDifficulty _selectedDifficulty;
   late int? _durationMinutes;
 
-  final List<String> _categories = [
-    'Kerja',
-    'Pribadi',
-    'Wishlist',
-    'Hari Ulang Tahun',
-  ];
+  final _categoryApiService = CategoryApiService();
+  List<CategoryModel> _categories = [];
+  bool _isLoadingCategories = true;
 
   @override
   void initState() {
     super.initState();
     _selectedCategory = widget.task.categoryName;
+    _selectedCategoryId = widget.task.categoryId;
     _title = widget.task.title;
     _deadline = widget.task.deadline;
     _reminderMinutes = widget.task.reminderMinutes;
@@ -51,6 +52,49 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
     _repeatEndDate = widget.task.repeatEndDate;
     _selectedDifficulty = widget.task.difficulty;
     _durationMinutes = widget.task.durationMinutes;
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      final categories = await _categoryApiService.getCategories();
+      setState(() {
+        _categories = categories;
+        _isLoadingCategories = false;
+      });
+
+      // Ensure the task's current category is in the list
+      final hasCategory = _categories.any(
+        (cat) => cat.name == _selectedCategory,
+      );
+      if (!hasCategory && _selectedCategory.isNotEmpty) {
+        // If the category doesn't exist in the list, add it
+        setState(() {
+          _categories.add(
+            CategoryModel(
+              id: _selectedCategoryId ?? '',
+              userId: '',
+              name: _selectedCategory,
+              color: '#6C5CE7',
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
+            ),
+          );
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoadingCategories = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal memuat kategori: $e'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
   }
 
   Color get _categoryColor {
@@ -187,6 +231,7 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
 
   void _performSave() {
     final updatedTask = widget.task.copyWith(
+      categoryId: _selectedCategoryId,
       categoryName: _selectedCategory,
       title: _title,
       deadline: _deadline,
@@ -235,36 +280,47 @@ class _EditTaskScreenState extends State<EditTaskScreen> {
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: AppTheme.cardShadow,
               ),
-              child: DropdownButton<String>(
-                value: _selectedCategory,
-                isExpanded: true,
-                underline: const SizedBox(),
-                icon: const Icon(Icons.arrow_drop_down),
-                items: _categories.map((category) {
-                  return DropdownMenuItem(
-                    value: category,
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 12,
-                          height: 12,
-                          decoration: BoxDecoration(
-                            color: _getCategoryColor(category),
-                            borderRadius: BorderRadius.circular(3),
+              child: _isLoadingCategories
+                  ? const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  : DropdownButton<String>(
+                      value: _selectedCategory,
+                      isExpanded: true,
+                      underline: const SizedBox(),
+                      icon: const Icon(Icons.arrow_drop_down),
+                      items: _categories.map((category) {
+                        return DropdownMenuItem(
+                          value: category.name,
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 12,
+                                height: 12,
+                                decoration: BoxDecoration(
+                                  color: _getCategoryColor(category.name),
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(category.name),
+                            ],
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Text(category),
-                      ],
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        if (value != null) {
+                          final category = _categories.firstWhere(
+                            (cat) => cat.name == value,
+                          );
+                          setState(() {
+                            _selectedCategory = value;
+                            _selectedCategoryId = category.id;
+                          });
+                        }
+                      },
                     ),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() => _selectedCategory = value);
-                  }
-                },
-              ),
             ),
 
             const SizedBox(height: 16),
