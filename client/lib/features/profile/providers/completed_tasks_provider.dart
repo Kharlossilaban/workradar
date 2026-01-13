@@ -1,10 +1,34 @@
 import 'package:flutter/foundation.dart';
 import '../../../core/models/task.dart';
 
-/// Provider for managing completed tasks chart data and date navigation
+/// Data class for category count
+class CategoryCount {
+  final Map<String, int> categoryCounts;
+
+  CategoryCount({Map<String, int>? categoryCounts})
+      : categoryCounts = categoryCounts ?? {};
+
+  int get total => categoryCounts.values.fold(0, (a, b) => a + b);
+
+  void add(String category, [int count = 1]) {
+    final normalizedCategory = category.toLowerCase();
+    categoryCounts[normalizedCategory] =
+        (categoryCounts[normalizedCategory] ?? 0) + count;
+  }
+
+  int getForCategory(String category) {
+    return categoryCounts[category.toLowerCase()] ?? 0;
+  }
+
+  CategoryCount copy() {
+    return CategoryCount(categoryCounts: Map.from(categoryCounts));
+  }
+}
+
+/// Provider for managing completed tasks chart data with category breakdown
 class CompletedTasksProvider with ChangeNotifier {
-  // Map to store completed task counts by date (YYYY-MM-DD format)
-  final Map<String, int> _completedCounts = {};
+  // Map to store completed task counts by date (YYYY-MM-DD format) with category breakdown
+  final Map<String, CategoryCount> _completedCounts = {};
 
   // Current date offset for navigation (0 = current period, -1 = previous, +1 = next)
   int _dateOffset = 0;
@@ -16,26 +40,39 @@ class CompletedTasksProvider with ChangeNotifier {
     _completedCounts.clear();
     for (final task in tasks) {
       if (task.isCompleted) {
-        // Use deadline if available, otherwise fallback to completion time or now
         final date = task.deadline ?? task.completedAt ?? DateTime.now();
         final dateKey = _formatDateKey(date);
-        _completedCounts[dateKey] = (_completedCounts[dateKey] ?? 0) + 1;
+        final category = task.categoryName;
+
+        if (!_completedCounts.containsKey(dateKey)) {
+          _completedCounts[dateKey] = CategoryCount();
+        }
+        _completedCounts[dateKey]!.add(category);
       }
     }
     notifyListeners();
   }
 
   /// Record a task completion for a specific date
-  void recordTaskCompletion(DateTime date) {
+  void recordTaskCompletion(DateTime date, {String category = 'Kerja'}) {
     final dateKey = _formatDateKey(date);
-    _completedCounts[dateKey] = (_completedCounts[dateKey] ?? 0) + 1;
+    if (!_completedCounts.containsKey(dateKey)) {
+      _completedCounts[dateKey] = CategoryCount();
+    }
+    _completedCounts[dateKey]!.add(category);
     notifyListeners();
   }
 
-  /// Get completed count for a specific date
+  /// Get completed count for a specific date (total)
   int getCompletedCount(DateTime date) {
     final dateKey = _formatDateKey(date);
-    return _completedCounts[dateKey] ?? 0;
+    return _completedCounts[dateKey]?.total ?? 0;
+  }
+
+  /// Get category count for a specific date
+  CategoryCount getCategoryCount(DateTime date) {
+    final dateKey = _formatDateKey(date);
+    return _completedCounts[dateKey]?.copy() ?? CategoryCount();
   }
 
   /// Get daily completed counts for a specific week (7 days)
@@ -48,26 +85,55 @@ class CompletedTasksProvider with ChangeNotifier {
     return counts;
   }
 
+  /// Get daily completed counts with category breakdown for a specific week
+  List<CategoryCount> getDailyCategoryCounts(DateTime startOfWeek) {
+    final counts = <CategoryCount>[];
+    for (int i = 0; i < 7; i++) {
+      final date = startOfWeek.add(Duration(days: i));
+      counts.add(getCategoryCount(date));
+    }
+    return counts;
+  }
+
   /// Get weekly completed counts for a specific month (4 weeks)
   List<int> getWeeklyCounts(DateTime monthDate) {
     final counts = <int>[];
-    // Get first day of month
     final firstDayOfMonth = DateTime(monthDate.year, monthDate.month, 1);
 
-    // Calculate 4 weeks from start of month
     for (int week = 0; week < 4; week++) {
       int weekTotal = 0;
       final weekStart = firstDayOfMonth.add(Duration(days: week * 7));
 
-      // Sum up counts for 7 days in this week
       for (int day = 0; day < 7; day++) {
         final date = weekStart.add(Duration(days: day));
-        // Only count if still in the same month
         if (date.month == monthDate.month) {
           weekTotal += getCompletedCount(date);
         }
       }
       counts.add(weekTotal);
+    }
+    return counts;
+  }
+
+  /// Get weekly completed counts with category breakdown for a specific month
+  List<CategoryCount> getWeeklyCategoryCounts(DateTime monthDate) {
+    final counts = <CategoryCount>[];
+    final firstDayOfMonth = DateTime(monthDate.year, monthDate.month, 1);
+
+    for (int week = 0; week < 4; week++) {
+      final weekCount = CategoryCount();
+      final weekStart = firstDayOfMonth.add(Duration(days: week * 7));
+
+      for (int day = 0; day < 7; day++) {
+        final date = weekStart.add(Duration(days: day));
+        if (date.month == monthDate.month) {
+          final dayCount = getCategoryCount(date);
+          for (final entry in dayCount.categoryCounts.entries) {
+            weekCount.add(entry.key, entry.value);
+          }
+        }
+      }
+      counts.add(weekCount);
     }
     return counts;
   }
@@ -84,6 +150,25 @@ class CompletedTasksProvider with ChangeNotifier {
         monthTotal += getCompletedCount(date);
       }
       counts.add(monthTotal);
+    }
+    return counts;
+  }
+
+  /// Get monthly completed counts with category breakdown for a specific year
+  List<CategoryCount> getMonthlyCategoryCounts(int year) {
+    final counts = <CategoryCount>[];
+    for (int month = 1; month <= 12; month++) {
+      final monthCount = CategoryCount();
+      final daysInMonth = DateTime(year, month + 1, 0).day;
+
+      for (int day = 1; day <= daysInMonth; day++) {
+        final date = DateTime(year, month, day);
+        final dayCount = getCategoryCount(date);
+        for (final entry in dayCount.categoryCounts.entries) {
+          monthCount.add(entry.key, entry.value);
+        }
+      }
+      counts.add(monthCount);
     }
     return counts;
   }

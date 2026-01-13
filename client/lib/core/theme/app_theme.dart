@@ -340,3 +340,82 @@ class AppTheme {
   static const Color darkTextLight = Color(0xFF6B6B8D);
   static const Color darkDivider = Color(0xFF2D2D4A);
 }
+
+/// Centralized category color management for consistent colors across the app
+class CategoryColors {
+  // Standard category names (Indonesian)
+  static const String kerja = 'kerja';
+  static const String pribadi = 'pribadi';
+  static const String wishlist = 'wishlist';
+  static const String birthday = 'hari ulang tahun';
+
+  // Category colors (consistent with AppTheme)
+  static const Color kerjaColor = Color(0xFF6C5CE7);      // Purple
+  static const Color pribadiColor = Color(0xFF00CEC9);    // Teal
+  static const Color wishlistColor = Color(0xFFFF7675);   // Coral
+  static const Color birthdayColor = Color(0xFFFDCB6E);   // Yellow
+
+  // Default color for unknown categories
+  static const Color defaultColor = Color(0xFF6C5CE7);
+
+  /// Get color for category by name (case-insensitive)
+  static Color getColor(String categoryName) {
+    switch (categoryName.toLowerCase()) {
+      case kerja:
+        return kerjaColor;
+      case pribadi:
+        return pribadiColor;
+      case wishlist:
+        return wishlistColor;
+      case birthday:
+        return birthdayColor;
+      default:
+        return defaultColor;
+    }
+  }
+
+  /// Get color with opacity
+  static Color getColorWithOpacity(String categoryName, double opacity) {
+    return getColor(categoryName).withValues(alpha: opacity);
+  }
+
+  /// Get all category colors as a list (for charts)
+  static List<Color> get allColors => [
+    kerjaColor,
+    pribadiColor,
+    wishlistColor,
+    birthdayColor,
+  ];
+
+  /// Get all categories with their colors (for legends)
+  static List<CategoryColorInfo> get allCategories => [
+    CategoryColorInfo(name: 'Kerja', color: kerjaColor),
+    CategoryColorInfo(name: 'Pribadi', color: pribadiColor),
+    CategoryColorInfo(name: 'Wishlist', color: wishlistColor),
+    CategoryColorInfo(name: 'Hari Ulang Tahun', color: birthdayColor),
+  ];
+
+  /// Get category display name
+  static String getDisplayName(String categoryName) {
+    switch (categoryName.toLowerCase()) {
+      case kerja:
+        return 'Kerja';
+      case pribadi:
+        return 'Pribadi';
+      case wishlist:
+        return 'Wishlist';
+      case birthday:
+        return 'Hari Ulang Tahun';
+      default:
+        return categoryName;
+    }
+  }
+}
+
+/// Category color information for legends
+class CategoryColorInfo {
+  final String name;
+  final Color color;
+
+  const CategoryColorInfo({required this.name, required this.color});
+}

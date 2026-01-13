@@ -222,23 +222,36 @@ class TaskProvider extends ChangeNotifier {
   }
 
   /// Toggle task completion on server
+  /// For repeating tasks: marks current as complete and fetches the newly created next occurrence
   Future<void> toggleTaskCompletionOnServer(
     String taskId, {
     Function(DateTime)? onCompleted,
   }) async {
     try {
+      final oldTaskIndex = _tasks.indexWhere((t) => t.id == taskId);
+      Task? oldTask;
+      if (oldTaskIndex != -1) {
+        oldTask = _tasks[oldTaskIndex];
+      }
+
       final updatedTaskModel = await _apiService.toggleComplete(taskId);
-      final index = _tasks.indexWhere((t) => t.id == taskId);
+      final updatedTask = _taskModelToTask(updatedTaskModel);
 
-      if (index != -1) {
-        final oldTask = _tasks[index];
-        final updatedTask = _taskModelToTask(updatedTaskModel);
-
+      if (oldTaskIndex != -1 && oldTask != null) {
         // Preserve duration and difficulty from old task
-        _tasks[index] = updatedTask.copyWith(
+        _tasks[oldTaskIndex] = updatedTask.copyWith(
           durationMinutes: oldTask.durationMinutes,
           difficulty: oldTask.difficulty,
         );
+
+        // If this is a repeating task that just got completed,
+        // fetch all tasks again to get the newly created next occurrence
+        if (updatedTask.isCompleted &&
+            !oldTask.isCompleted &&
+            oldTask.repeatType != RepeatType.none) {
+          // Refresh tasks to get newly created repeat occurrence
+          await loadTasksFromServer();
+        }
 
         // If task just got completed, call callback
         if (updatedTask.isCompleted &&

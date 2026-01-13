@@ -52,14 +52,16 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() => _isLoading = false);
 
         if (mounted) {
+          final navigator = Navigator.of(context);
+          final scaffoldMessenger = ScaffoldMessenger.of(context);
+          
           // Navigate to Main Screen
-          Navigator.pushReplacement(
-            context,
+          navigator.pushReplacement(
             MaterialPageRoute(builder: (context) => const MainScreen()),
           );
 
           // Show success message
-          ScaffoldMessenger.of(context).showSnackBar(
+          scaffoldMessenger.showSnackBar(
             const SnackBar(
               content: Text('Login berhasil!'),
               backgroundColor: Colors.green,
@@ -70,6 +72,9 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() => _isLoading = false);
 
         if (mounted) {
+          final navigator = Navigator.of(context);
+          final scaffoldMessenger = ScaffoldMessenger.of(context);
+          
           // Check if email not verified - redirect to OTP verification
           if (e.message.toLowerCase().contains('email not verified') ||
               e.message.toLowerCase().contains('verify your email')) {
@@ -82,7 +87,7 @@ class _LoginScreenState extends State<LoginScreen> {
               // Ignore error, still navigate to verification screen
             }
 
-            ScaffoldMessenger.of(context).showSnackBar(
+            scaffoldMessenger.showSnackBar(
               const SnackBar(
                 content: Text(
                   'Email belum diverifikasi. Kode verifikasi telah dikirim.',
@@ -92,15 +97,14 @@ class _LoginScreenState extends State<LoginScreen> {
             );
 
             // Navigate to registration OTP screen
-            Navigator.push(
-              context,
+            navigator.push(
               MaterialPageRoute(
                 builder: (context) => RegistrationOtpScreen(email: email),
               ),
             );
           } else {
             // Show error message from API
-            ScaffoldMessenger.of(context).showSnackBar(
+            scaffoldMessenger.showSnackBar(
               SnackBar(content: Text(e.message), backgroundColor: Colors.red),
             );
           }

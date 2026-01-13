@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/providers/task_provider.dart';
+import '../../../core/widgets/skeleton_loading.dart';
 import '../../profile/providers/workload_provider.dart';
 import '../../profile/providers/completed_tasks_provider.dart';
 import '../../profile/providers/profile_provider.dart';
@@ -487,6 +488,31 @@ class _CalendarScreenState extends State<CalendarScreen> {
         _selectedDate.year == DateTime.now().year &&
         _selectedDate.month == DateTime.now().month &&
         _selectedDate.day == DateTime.now().day;
+
+    // Show skeleton loading when loading
+    if (taskProvider.isLoading) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              isToday
+                  ? 'Hari ini'
+                  : DateFormat('dd MMMM yyyy', 'id_ID').format(_selectedDate),
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Tambahkan tugas dan pantau progres anda',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 16),
+            const Expanded(child: SkeletonCalendarEvents(itemCount: 3)),
+          ],
+        ),
+      );
+    }
 
     final tasksForSelectedDate = taskProvider.getTasksForDate(
       _selectedDate,

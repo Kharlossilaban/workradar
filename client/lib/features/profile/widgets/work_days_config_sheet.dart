@@ -5,8 +5,15 @@ import '../providers/profile_provider.dart';
 
 class WorkDaysConfigSheet extends StatefulWidget {
   final ProfileProvider provider;
+  final bool isFirstTimeSetup;
+  final VoidCallback? onSaveComplete;
 
-  const WorkDaysConfigSheet({super.key, required this.provider});
+  const WorkDaysConfigSheet({
+    super.key,
+    required this.provider,
+    this.isFirstTimeSetup = false,
+    this.onSaveComplete,
+  });
 
   @override
   State<WorkDaysConfigSheet> createState() => _WorkDaysConfigSheetState();
@@ -134,6 +141,11 @@ class _WorkDaysConfigSheetState extends State<WorkDaysConfigSheet> {
         ),
       ),
     );
+
+    // Call callback if provided (for first time setup redirect)
+    if (widget.onSaveComplete != null) {
+      widget.onSaveComplete!();
+    }
   }
 
   @override

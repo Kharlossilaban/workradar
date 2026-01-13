@@ -1,10 +1,40 @@
 import 'package:flutter/foundation.dart';
 import '../../../core/models/task.dart';
 
-/// Provider for managing workload chart data and date navigation
+/// Data class for category duration
+class CategoryDuration {
+  final Map<String, int> categoryMinutes;
+
+  CategoryDuration({Map<String, int>? categoryMinutes})
+      : categoryMinutes = categoryMinutes ?? {};
+
+  int get total => categoryMinutes.values.fold(0, (a, b) => a + b);
+
+  void add(String category, int minutes) {
+    final normalizedCategory = category.toLowerCase();
+    categoryMinutes[normalizedCategory] =
+        (categoryMinutes[normalizedCategory] ?? 0) + minutes;
+  }
+
+  void remove(String category, int minutes) {
+    final normalizedCategory = category.toLowerCase();
+    final current = categoryMinutes[normalizedCategory] ?? 0;
+    categoryMinutes[normalizedCategory] = (current - minutes).clamp(0, double.infinity).toInt();
+  }
+
+  int getForCategory(String category) {
+    return categoryMinutes[category.toLowerCase()] ?? 0;
+  }
+
+  CategoryDuration copy() {
+    return CategoryDuration(categoryMinutes: Map.from(categoryMinutes));
+  }
+}
+
+/// Provider for managing workload chart data with category breakdown
 class WorkloadProvider with ChangeNotifier {
-  // Map to store task duration sum by date (YYYY-MM-DD format)
-  final Map<String, int> _taskDurations = {};
+  // Map to store task duration with category breakdown by date (YYYY-MM-DD format)
+  final Map<String, CategoryDuration> _taskDurations = {};
 
   // Current date offset for navigation (0 = current period, -1 = previous, +1 = next)
   int _dateOffset = 0;
@@ -15,7 +45,7 @@ class WorkloadProvider with ChangeNotifier {
   int get totalAllTimeWorkload {
     int total = 0;
     for (final duration in _taskDurations.values) {
-      total += duration;
+      total += duration.total;
     }
     return total;
   }
@@ -25,57 +55,79 @@ class WorkloadProvider with ChangeNotifier {
     _taskDurations.clear();
     for (final task in tasks) {
       if (task.isCompleted) {
-        // Use deadline if available, otherwise fallback to completion time or now
         final date = task.deadline ?? task.completedAt ?? DateTime.now();
         final dateKey = _formatDateKey(date);
-        // Add duration (default to 30 mins if not set, or according to user preference)
-        // For now, if duration is null, we treat it as 0 or a minimal value
         final duration = task.durationMinutes ?? 0;
-        _taskDurations[dateKey] = (_taskDurations[dateKey] ?? 0) + duration;
+        final category = task.categoryName;
+
+        if (!_taskDurations.containsKey(dateKey)) {
+          _taskDurations[dateKey] = CategoryDuration();
+        }
+        _taskDurations[dateKey]!.add(category, duration);
       }
     }
     notifyListeners();
   }
 
   /// Record a task completion for a specific date
-  void recordTaskCompletion(DateTime date, {int duration = 0}) {
+  void recordTaskCompletion(DateTime date, {int duration = 0, String category = 'Kerja'}) {
     final dateKey = _formatDateKey(date);
-    _taskDurations[dateKey] = (_taskDurations[dateKey] ?? 0) + duration;
+    if (!_taskDurations.containsKey(dateKey)) {
+      _taskDurations[dateKey] = CategoryDuration();
+    }
+    _taskDurations[dateKey]!.add(category, duration);
     notifyListeners();
   }
 
   /// Record a scheduled task (for real-time workload tracking)
-  /// This updates workload immediately when a task is added, not just when completed
-  void recordScheduledTask(DateTime date, {required int duration}) {
-    if (duration <= 0) return; // Don't track tasks without duration
+  void recordScheduledTask(DateTime date, {required int duration, String category = 'Kerja'}) {
+    if (duration <= 0) return;
     final dateKey = _formatDateKey(date);
-    _taskDurations[dateKey] = (_taskDurations[dateKey] ?? 0) + duration;
+    if (!_taskDurations.containsKey(dateKey)) {
+      _taskDurations[dateKey] = CategoryDuration();
+    }
+    _taskDurations[dateKey]!.add(category, duration);
     notifyListeners();
   }
 
   /// Remove a scheduled task from workload (when task is deleted before completion)
-  void removeScheduledTask(DateTime date, {required int duration}) {
+  void removeScheduledTask(DateTime date, {required int duration, String category = 'Kerja'}) {
     if (duration <= 0) return;
     final dateKey = _formatDateKey(date);
-    final currentDuration = _taskDurations[dateKey] ?? 0;
-    _taskDurations[dateKey] = (currentDuration - duration)
-        .clamp(0, double.infinity)
-        .toInt();
+    if (_taskDurations.containsKey(dateKey)) {
+      _taskDurations[dateKey]!.remove(category, duration);
+    }
     notifyListeners();
   }
 
   /// Get total duration for a specific date
   int getTotalDuration(DateTime date) {
     final dateKey = _formatDateKey(date);
-    return _taskDurations[dateKey] ?? 0;
+    return _taskDurations[dateKey]?.total ?? 0;
   }
 
-  /// Get daily durations for a specific week (7 days)
+  /// Get category duration for a specific date
+  CategoryDuration getCategoryDuration(DateTime date) {
+    final dateKey = _formatDateKey(date);
+    return _taskDurations[dateKey]?.copy() ?? CategoryDuration();
+  }
+
+  /// Get daily durations for a specific week (7 days) - returns total only (backward compatible)
   List<int> getDailyDurations(DateTime startOfWeek) {
     final durations = <int>[];
     for (int i = 0; i < 7; i++) {
       final date = startOfWeek.add(Duration(days: i));
       durations.add(getTotalDuration(date));
+    }
+    return durations;
+  }
+
+  /// Get daily durations with category breakdown for a specific week
+  List<CategoryDuration> getDailyCategoryDurations(DateTime startOfWeek) {
+    final durations = <CategoryDuration>[];
+    for (int i = 0; i < 7; i++) {
+      final date = startOfWeek.add(Duration(days: i));
+      durations.add(getCategoryDuration(date));
     }
     return durations;
   }
@@ -104,6 +156,29 @@ class WorkloadProvider with ChangeNotifier {
     return durations;
   }
 
+  /// Get weekly durations with category breakdown for a specific month
+  List<CategoryDuration> getWeeklyCategoryDurations(DateTime monthDate) {
+    final durations = <CategoryDuration>[];
+    final firstDayOfMonth = DateTime(monthDate.year, monthDate.month, 1);
+
+    for (int week = 0; week < 4; week++) {
+      final weekDuration = CategoryDuration();
+      final weekStart = firstDayOfMonth.add(Duration(days: week * 7));
+
+      for (int day = 0; day < 7; day++) {
+        final date = weekStart.add(Duration(days: day));
+        if (date.month == monthDate.month) {
+          final dayDuration = getCategoryDuration(date);
+          for (final entry in dayDuration.categoryMinutes.entries) {
+            weekDuration.add(entry.key, entry.value);
+          }
+        }
+      }
+      durations.add(weekDuration);
+    }
+    return durations;
+  }
+
   /// Get monthly durations for a specific year (12 months)
   List<int> getMonthlyDurations(int year) {
     final durations = <int>[];
@@ -116,6 +191,25 @@ class WorkloadProvider with ChangeNotifier {
         monthTotal += getTotalDuration(date);
       }
       durations.add(monthTotal);
+    }
+    return durations;
+  }
+
+  /// Get monthly durations with category breakdown for a specific year
+  List<CategoryDuration> getMonthlyCategoryDurations(int year) {
+    final durations = <CategoryDuration>[];
+    for (int month = 1; month <= 12; month++) {
+      final monthDuration = CategoryDuration();
+      final daysInMonth = DateTime(year, month + 1, 0).day;
+
+      for (int day = 1; day <= daysInMonth; day++) {
+        final date = DateTime(year, month, day);
+        final dayDuration = getCategoryDuration(date);
+        for (final entry in dayDuration.categoryMinutes.entries) {
+          monthDuration.add(entry.key, entry.value);
+        }
+      }
+      durations.add(monthDuration);
     }
     return durations;
   }

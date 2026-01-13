@@ -7,6 +7,7 @@ import '../../../core/storage/secure_storage.dart';
 import '../../../core/providers/task_provider.dart';
 import '../../../core/models/task.dart';
 import '../../../core/services/auth_api_service.dart';
+import '../../../core/widgets/skeleton_loading.dart';
 import '../widgets/workload_chart.dart';
 import '../widgets/completed_tasks_chart.dart';
 import '../widgets/work_days_config_sheet.dart';
@@ -447,6 +448,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildChart(WorkloadProvider provider, bool isDarkMode) {
     List<int> taskData;
+    List<CategoryDuration>? categoryData;
     bool hasData;
     final profileProvider = context.read<ProfileProvider>();
     final totalWorkMinutes = profileProvider.totalWorkMinutes;
@@ -455,16 +457,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       case 'Daily':
         final weekStart = provider.getWeekStartDate();
         taskData = provider.getDailyDurations(weekStart);
+        categoryData = provider.getDailyCategoryDurations(weekStart);
         hasData = provider.hasDataForWeek(weekStart);
         break;
 
       case 'Weekly':
         if (!_isVip) {
           taskData = [0, 0, 0, 0];
+          categoryData = null;
           hasData = false;
         } else {
           final monthDate = provider.getMonthDate();
           taskData = provider.getWeeklyDurations(monthDate);
+          categoryData = provider.getWeeklyCategoryDurations(monthDate);
           hasData = provider.hasDataForMonth(monthDate);
         }
         break;
@@ -472,16 +477,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       case 'Monthly':
         if (!_isVip) {
           taskData = List.generate(12, (_) => 0);
+          categoryData = null;
           hasData = false;
         } else {
           final year = provider.getYear();
           taskData = provider.getMonthlyDurations(year);
+          categoryData = provider.getMonthlyCategoryDurations(year);
           hasData = provider.hasDataForYear(year);
         }
         break;
 
       default:
         taskData = [];
+        categoryData = null;
         hasData = false;
     }
 
@@ -489,6 +497,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       period: _selectedPeriod,
       isVip: _isVip,
       taskData: taskData,
+      categoryData: categoryData,
       hasData: hasData,
       totalWorkMinutes: totalWorkMinutes,
     );
@@ -686,11 +695,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     BuildContext context,
     ProfileProvider provider,
   ) async {
+    final isFirstTimeSetup = !provider.hasWorkHours;
+    final navigator = Navigator.of(context);
+    
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => WorkDaysConfigSheet(provider: provider),
+      builder: (context) => WorkDaysConfigSheet(
+        provider: provider,
+        isFirstTimeSetup: isFirstTimeSetup,
+        onSaveComplete: isFirstTimeSetup
+            ? () {
+                // Redirect to dashboard after first time setup
+                navigator.popUntil((route) => route.isFirst);
+              }
+            : null,
+      ),
     );
   }
 
@@ -704,7 +725,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (profileProvider.isLoading) {
           return const Padding(
             padding: EdgeInsets.all(16),
-            child: Center(child: CircularProgressIndicator()),
+            child: SkeletonStatsGrid(),
           );
         }
 
@@ -1059,12 +1080,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   ) {
     List<int> taskData;
     bool hasData;
+    List<CategoryCount> categoryData = [];
 
     switch (_selectedCompletedPeriod) {
       case 'Daily':
         final weekStart = provider.getWeekStartDate();
         taskData = provider.getDailyCounts(weekStart);
         hasData = provider.hasDataForWeek(weekStart);
+        categoryData = provider.getDailyCategoryCounts(weekStart);
         break;
 
       case 'Weekly':
@@ -1075,6 +1098,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           final monthDate = provider.getMonthDate();
           taskData = provider.getWeeklyCounts(monthDate);
           hasData = provider.hasDataForMonth(monthDate);
+          categoryData = provider.getWeeklyCategoryCounts(monthDate);
         }
         break;
 
@@ -1086,6 +1110,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           final year = provider.getYear();
           taskData = provider.getMonthlyCounts(year);
           hasData = provider.hasDataForYear(year);
+          categoryData = provider.getMonthlyCategoryCounts(year);
         }
         break;
 
@@ -1099,6 +1124,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       isVip: _isVip,
       taskData: taskData,
       hasData: hasData,
+      categoryData: categoryData,
     );
   }
 

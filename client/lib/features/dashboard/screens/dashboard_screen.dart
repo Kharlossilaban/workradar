@@ -13,6 +13,7 @@ import '../../profile/screens/profile_screen.dart';
 import '../../../core/widgets/task_card.dart';
 import '../../../core/widgets/category_chip.dart';
 import '../../../core/widgets/custom_button.dart';
+import '../../../core/widgets/skeleton_loading.dart';
 import '../widgets/task_input_modal.dart';
 import '../../tasks/screens/edit_task_screen.dart';
 import '../../tasks/screens/completed_tasks_screen.dart';
@@ -406,7 +407,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             // Collapsible Task Sections
             Expanded(
               child: taskProvider.isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? _buildLoadingSkeleton()
                   : todayTasks.isEmpty &&
                         upcomingTasks.isEmpty &&
                         completedTodayTasks.isEmpty
@@ -586,6 +587,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
       default:
         return null;
     }
+  }
+
+  Widget _buildLoadingSkeleton() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 16),
+          // Section header skeleton
+          SkeletonContainer(
+            child: Row(
+              children: [
+                const SkeletonText(width: 80, height: 16),
+                const Spacer(),
+                SkeletonBox(width: 24, height: 24, borderRadius: 4),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Task cards skeleton
+          const SkeletonTaskList(itemCount: 4),
+          const SizedBox(height: 24),
+          // Another section header
+          SkeletonContainer(
+            child: Row(
+              children: [
+                const SkeletonText(width: 120, height: 16),
+                const Spacer(),
+                SkeletonBox(width: 24, height: 24, borderRadius: 4),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          // More task cards
+          const SkeletonTaskList(itemCount: 3),
+        ],
+      ),
+    );
   }
 
   Widget _buildEmptyState(ProfileProvider profileProvider) {
