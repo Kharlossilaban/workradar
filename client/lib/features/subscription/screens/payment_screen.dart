@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/midtrans_service.dart';
 import '../../../core/models/payment.dart';
 import '../../messaging/providers/messaging_provider.dart';
 import 'package:provider/provider.dart';
+import 'payment_webview_screen.dart';
 
 class PaymentScreen extends StatefulWidget {
   final String userId;
@@ -506,7 +506,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
           ),
           if (_currentPayment!.isPending)
             TextButton(
-              onPressed: _checkPaymentStatus,
+              onPressed: () {
+                // Since we're now using WebView, we don't need manual status check
+                // The WebView handles status automatically
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Status akan diperbarui otomatis setelah pembayaran selesai.'),
+                  ),
+                );
+              },
               child: const Text('Refresh'),
             ),
         ],
@@ -562,16 +570,24 @@ class _PaymentScreenState extends State<PaymentScreen> {
         _isLoading = false;
       });
 
-      // Open Midtrans payment page
-      if (payment.redirectUrl != null) {
-        final url = Uri.parse(payment.redirectUrl!);
-        if (await canLaunchUrl(url)) {
-          await launchUrl(url, mode: LaunchMode.externalApplication);
+      // Open WebView Payment Screen instead of external browser
+      if (payment.redirectUrl != null && mounted) {
+        final result = await Navigator.push<PaymentStatus>(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PaymentWebViewScreen(
+              redirectUrl: payment.redirectUrl!,
+              orderId: payment.orderId,
+              onPaymentCompleted: (status, message) {
+                Navigator.pop(context, status);
+              },
+            ),
+          ),
+        );
 
-          // Show dialog to check status after payment
-          if (mounted) {
-            _showPaymentPendingDialog();
-          }
+        // Handle payment result
+        if (result != null && mounted) {
+          await _handlePaymentResult(result, payment);
         }
       }
     } catch (e) {
@@ -588,53 +604,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
   }
 
-  void _showPaymentPendingDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Menunggu Pembayaran'),
-        content: const Text(
-          'Setelah menyelesaikan pembayaran di halaman Midtrans, '
-          'kembali ke aplikasi dan tekan "Cek Status" untuk memverifikasi.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: const Text('Nanti'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _checkPaymentStatus();
-            },
-            child: const Text('Cek Status'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _checkPaymentStatus() async {
-    if (_currentPayment == null) return;
-
-    try {
-      final updatedPayment = await _midtransService.checkPaymentStatus(
-        orderId: _currentPayment!.orderId,
-      );
-
-      setState(() {
-        _currentPayment = updatedPayment;
-      });
-
-      if (updatedPayment.isSuccess) {
-        // Send success message
+  Future<void> _handlePaymentResult(PaymentStatus result, Payment payment) async {
+    switch (result) {
+      case PaymentStatus.success:
+        // Send success messages
         if (mounted) {
           context.read<MessagingProvider>().sendPaymentSuccessMessage(
             widget.userId,
-            updatedPayment.amount,
+            payment.amount,
           );
           context.read<MessagingProvider>().sendVipWelcomeMessage(
             widget.userId,
@@ -669,24 +646,56 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
           );
         }
-      } else if (updatedPayment.isFailed) {
-        // Send failure message
+        break;
+
+      case PaymentStatus.failed:
         if (mounted) {
           context.read<MessagingProvider>().sendPaymentFailedMessage(
             widget.userId,
             'Pembayaran ditolak oleh sistem',
           );
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Pembayaran gagal. Silakan coba lagi.'),
+              backgroundColor: Colors.red,
+            ),
+          );
         }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal mengecek status: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+        break;
+
+      case PaymentStatus.cancelled:
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Pembayaran dibatalkan.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        break;
+
+      case PaymentStatus.expired:
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Pembayaran kadaluarsa. Silakan coba lagi.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        break;
+
+      case PaymentStatus.pending:
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Pembayaran sedang diproses. Mohon tunggu beberapa saat.'),
+              backgroundColor: Colors.blue,
+            ),
+          );
+        }
+        break;
     }
   }
 }

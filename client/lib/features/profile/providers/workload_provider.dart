@@ -1,25 +1,45 @@
 import 'package:flutter/foundation.dart';
 import '../../../core/models/task.dart';
 
-/// Data class for category duration
+/// Data class for category duration with difficulty tracking
 class CategoryDuration {
   final Map<String, int> categoryMinutes;
+  // Track difficulty counts (relaxed, normal, focus)
+  final Map<String, int> difficultyCounts;
 
-  CategoryDuration({Map<String, int>? categoryMinutes})
-      : categoryMinutes = categoryMinutes ?? {};
+  CategoryDuration({
+    Map<String, int>? categoryMinutes,
+    Map<String, int>? difficultyCounts,
+  }) : categoryMinutes = categoryMinutes ?? {},
+       difficultyCounts = difficultyCounts ?? {};
 
   int get total => categoryMinutes.values.fold(0, (a, b) => a + b);
 
-  void add(String category, int minutes) {
+  int get heavyTaskCount => difficultyCounts['focus'] ?? 0;
+  int get normalTaskCount => difficultyCounts['normal'] ?? 0;
+  int get lightTaskCount => difficultyCounts['relaxed'] ?? 0;
+
+  void add(String category, int minutes, {String difficulty = 'normal'}) {
     final normalizedCategory = category.toLowerCase();
     categoryMinutes[normalizedCategory] =
         (categoryMinutes[normalizedCategory] ?? 0) + minutes;
+
+    // Track difficulty count
+    difficultyCounts[difficulty] = (difficultyCounts[difficulty] ?? 0) + 1;
   }
 
-  void remove(String category, int minutes) {
+  void remove(String category, int minutes, {String difficulty = 'normal'}) {
     final normalizedCategory = category.toLowerCase();
     final current = categoryMinutes[normalizedCategory] ?? 0;
-    categoryMinutes[normalizedCategory] = (current - minutes).clamp(0, double.infinity).toInt();
+    categoryMinutes[normalizedCategory] = (current - minutes)
+        .clamp(0, double.infinity)
+        .toInt();
+
+    // Track difficulty count
+    final currentCount = difficultyCounts[difficulty] ?? 0;
+    if (currentCount > 0) {
+      difficultyCounts[difficulty] = currentCount - 1;
+    }
   }
 
   int getForCategory(String category) {
@@ -27,7 +47,10 @@ class CategoryDuration {
   }
 
   CategoryDuration copy() {
-    return CategoryDuration(categoryMinutes: Map.from(categoryMinutes));
+    return CategoryDuration(
+      categoryMinutes: Map.from(categoryMinutes),
+      difficultyCounts: Map.from(difficultyCounts),
+    );
   }
 }
 
@@ -51,51 +74,90 @@ class WorkloadProvider with ChangeNotifier {
   }
 
   /// Sync workload data from a list of tasks
+  /// Now includes ALL tasks (completed and pending) to show workload properly
   void syncFromTasks(List<Task> tasks) {
     _taskDurations.clear();
     for (final task in tasks) {
-      if (task.isCompleted) {
-        final date = task.deadline ?? task.completedAt ?? DateTime.now();
+      // Include all tasks with deadlines and duration (not just completed)
+      if (task.deadline != null &&
+          task.durationMinutes != null &&
+          task.durationMinutes! > 0) {
+        final date = task.deadline!;
         final dateKey = _formatDateKey(date);
-        final duration = task.durationMinutes ?? 0;
+        final duration = task.durationMinutes!;
         final category = task.categoryName;
+        final difficulty = _difficultyToString(task.difficulty);
 
         if (!_taskDurations.containsKey(dateKey)) {
           _taskDurations[dateKey] = CategoryDuration();
         }
-        _taskDurations[dateKey]!.add(category, duration);
+        _taskDurations[dateKey]!.add(
+          category,
+          duration,
+          difficulty: difficulty,
+        );
       }
     }
     notifyListeners();
   }
 
+  String _difficultyToString(TaskDifficulty difficulty) {
+    switch (difficulty) {
+      case TaskDifficulty.relaxed:
+        return 'relaxed';
+      case TaskDifficulty.focus:
+        return 'focus';
+      default:
+        return 'normal';
+    }
+  }
+
   /// Record a task completion for a specific date
-  void recordTaskCompletion(DateTime date, {int duration = 0, String category = 'Kerja'}) {
+  void recordTaskCompletion(
+    DateTime date, {
+    int duration = 0,
+    String category = 'Kerja',
+    String difficulty = 'normal',
+  }) {
     final dateKey = _formatDateKey(date);
     if (!_taskDurations.containsKey(dateKey)) {
       _taskDurations[dateKey] = CategoryDuration();
     }
-    _taskDurations[dateKey]!.add(category, duration);
+    _taskDurations[dateKey]!.add(category, duration, difficulty: difficulty);
     notifyListeners();
   }
 
   /// Record a scheduled task (for real-time workload tracking)
-  void recordScheduledTask(DateTime date, {required int duration, String category = 'Kerja'}) {
+  void recordScheduledTask(
+    DateTime date, {
+    required int duration,
+    String category = 'Kerja',
+    String difficulty = 'normal',
+  }) {
     if (duration <= 0) return;
     final dateKey = _formatDateKey(date);
     if (!_taskDurations.containsKey(dateKey)) {
       _taskDurations[dateKey] = CategoryDuration();
     }
-    _taskDurations[dateKey]!.add(category, duration);
+    _taskDurations[dateKey]!.add(category, duration, difficulty: difficulty);
     notifyListeners();
   }
 
   /// Remove a scheduled task from workload (when task is deleted before completion)
-  void removeScheduledTask(DateTime date, {required int duration, String category = 'Kerja'}) {
+  void removeScheduledTask(
+    DateTime date, {
+    required int duration,
+    String category = 'Kerja',
+    String difficulty = 'normal',
+  }) {
     if (duration <= 0) return;
     final dateKey = _formatDateKey(date);
     if (_taskDurations.containsKey(dateKey)) {
-      _taskDurations[dateKey]!.remove(category, duration);
+      _taskDurations[dateKey]!.remove(
+        category,
+        duration,
+        difficulty: difficulty,
+      );
     }
     notifyListeners();
   }

@@ -212,12 +212,9 @@ class WorkloadChart extends StatelessWidget {
               rodStackItems: rodStackItems,
               width: barWidth,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+              // Remove background bar - keep it transparent
               backDrawRodData: BackgroundBarChartRodData(
-                show: true,
-                toY: _getMaxY(),
-                color: isDarkMode
-                    ? AppTheme.darkDivider.withValues(alpha: 0.3)
-                    : Colors.grey.shade100,
+                show: false, // Disabled to remove grey background
               ),
             ),
           ],
@@ -234,12 +231,9 @@ class WorkloadChart extends StatelessWidget {
             color: CategoryColors.kerjaColor,
             width: barWidth,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+            // Remove background bar - keep it transparent
             backDrawRodData: BackgroundBarChartRodData(
-              show: true,
-              toY: _getMaxY(),
-              color: isDarkMode
-                  ? AppTheme.darkDivider.withValues(alpha: 0.3)
-                  : Colors.grey.shade100,
+              show: false, // Disabled to remove grey background
             ),
           ),
         ],
@@ -322,10 +316,17 @@ class WorkloadChart extends StatelessWidget {
   }
 
   double _getMaxY() {
-    if (taskData.isEmpty) return 480;
+    if (taskData.isEmpty) return 120; // 2 hours default
+    
     final maxMinutes = taskData.reduce((a, b) => a > b ? a : b);
-    double baseline = totalWorkMinutes > 0 ? totalWorkMinutes.toDouble() : 480;
-    return maxMinutes > baseline ? (maxMinutes + 60).toDouble() : baseline;
+    
+    if (maxMinutes == 0) return 120; // 2 hours default if no data
+    
+    // Round up to nearest hour (60 minutes) with some padding
+    final roundedMax = ((maxMinutes / 60).ceil() * 60) + 60;
+    
+    // Minimum 2 hours, maximum based on data
+    return roundedMax < 120 ? 120.0 : roundedMax.toDouble();
   }
 
   String _getBottomTitle(int index) {

@@ -31,17 +31,24 @@ func NewPaymentService(
 ) *PaymentService {
 	// Initialize Midtrans Snap Client
 	var s snap.Client
-	s.New(config.AppConfig.MidtransServerKey, midtrans.Sandbox)
-	if config.AppConfig.MidtransIsProduction {
-		s.New(config.AppConfig.MidtransServerKey, midtrans.Production)
-	}
-
-	// Initialize Midtrans Core API Client (for checking status)
 	var c coreapi.Client
-	c.New(config.AppConfig.MidtransServerKey, midtrans.Sandbox)
-	if config.AppConfig.MidtransIsProduction {
-		c.New(config.AppConfig.MidtransServerKey, midtrans.Production)
+	
+	// Validate server key
+	if config.AppConfig.MidtransServerKey == "" {
+		log.Fatal("MIDTRANS_SERVER_KEY is not set in environment variables")
 	}
+	
+	// Set environment based on production flag
+	env := midtrans.Sandbox
+	if config.AppConfig.MidtransIsProduction {
+		env = midtrans.Production
+	}
+	
+	// Initialize clients with proper environment
+	s.New(config.AppConfig.MidtransServerKey, env)
+	c.New(config.AppConfig.MidtransServerKey, env)
+	
+	log.Printf("Midtrans initialized in %v mode", env)
 
 	return &PaymentService{
 		transactionRepo:   transactionRepo,
@@ -54,11 +61,12 @@ func NewPaymentService(
 }
 
 // CreateSnapToken creates a transaction and returns Snap Token
-func (s *PaymentService) CreateSnapToken(userID string, planType models.PlanType) (string, string, error) {
+// CreateSnapToken creates a transaction and returns Snap Token, Redirect URL, and Order ID
+func (s *PaymentService) CreateSnapToken(userID string, planType models.PlanType) (string, string, string, error) {
 	// 1. Validate User
 	user, err := s.userRepo.FindByID(userID)
 	if err != nil {
-		return "", "", errors.New("user not found")
+	return "", "", "", errors.New("user not found")
 	}
 
 	// 2. Determine Amount
@@ -71,7 +79,7 @@ func (s *PaymentService) CreateSnapToken(userID string, planType models.PlanType
 		amount = models.PriceYearly
 		planName = "Workradar VIP (Yearly)"
 	} else {
-		return "", "", errors.New("invalid plan type")
+	return "", "", "", errors.New("invalid plan type")
 	}
 
 	// 3. Generate Order ID
@@ -105,7 +113,7 @@ func (s *PaymentService) CreateSnapToken(userID string, planType models.PlanType
 	snapResp, err := s.snapClient.CreateTransaction(req)
 	if err != nil {
 		log.Printf("Midtrans Error: %v", err)
-		return "", "", errors.New("payment gateway error")
+		return "", "", "", errors.New("payment gateway error")
 	}
 
 	// 6. Save Transaction to DB
@@ -119,10 +127,10 @@ func (s *PaymentService) CreateSnapToken(userID string, planType models.PlanType
 	}
 
 	if err := s.transactionRepo.Create(trx); err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 
-	return snapResp.Token, snapResp.RedirectURL, nil
+	return snapResp.Token, snapResp.RedirectURL, orderID, nil
 }
 
 // HandleNotification processes Midtrans webhook

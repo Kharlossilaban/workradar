@@ -7,7 +7,6 @@ import '../../../core/storage/secure_storage.dart';
 import '../../../core/providers/task_provider.dart';
 import '../../../core/models/task.dart';
 import '../../../core/services/auth_api_service.dart';
-import '../../../core/widgets/skeleton_loading.dart';
 import '../widgets/workload_chart.dart';
 import '../widgets/completed_tasks_chart.dart';
 import '../widgets/work_days_config_sheet.dart';
@@ -41,7 +40,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Load profile and stats from server
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      
+
       final profileProvider = context.read<ProfileProvider>();
       final taskProvider = context.read<TaskProvider>();
       final workloadProvider = context.read<WorkloadProvider>();
@@ -89,15 +88,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               if (!_isVip) const SizedBox(height: 20),
               if (!_isVip) _buildVipBanner(),
               const SizedBox(height: 20),
-              _buildStatisticsCards(isDarkMode),
-              const SizedBox(height: 20),
               _buildWorkHoursCard(isDarkMode),
               const SizedBox(height: 20),
               _buildQuickActionsSection(isDarkMode),
               const SizedBox(height: 20),
-              _buildWorkloadCard(isDarkMode),
+              _buildCompletedTasksCard(
+                isDarkMode,
+              ), // Tugas Selesai - dengan 2 kartu di bawahnya
               const SizedBox(height: 20),
-              _buildCompletedTasksCard(isDarkMode),
+              _buildWorkloadCard(
+                isDarkMode,
+              ), // Beban Kerja - dengan 2 kartu di bawahnya
               const SizedBox(height: 20),
               _buildLogoutButton(isDarkMode),
               const SizedBox(height: 30),
@@ -287,8 +288,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ? AppTheme.darkDivider
         : Colors.grey.shade100;
 
-    return Consumer<WorkloadProvider>(
-      builder: (context, provider, child) {
+    return Consumer2<WorkloadProvider, TaskProvider>(
+      builder: (context, provider, taskProvider, child) {
+        // Calculate workload stats based on selected period
+        final workloadStats = _calculateWorkloadStats(taskProvider, provider);
+
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 16),
           padding: const EdgeInsets.all(20),
@@ -362,11 +366,142 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               // Chart
               SizedBox(height: 200, child: _buildChart(provider, isDarkMode)),
+
+              const SizedBox(height: 20),
+
+              // Stats cards below chart
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildMiniStatCard(
+                      icon: Iconsax.weight,
+                      iconColor: Colors.orange,
+                      title: 'Total Beban Kerja',
+                      value: workloadStats['workloadValue']!,
+                      isDarkMode: isDarkMode,
+                      textPrimaryColor: textPrimaryColor,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildMiniStatCard(
+                      icon: Iconsax.clock,
+                      iconColor: AppTheme.primaryColor,
+                      title: 'Total Jam Kerja',
+                      value: workloadStats['workHoursValue']!,
+                      isDarkMode: isDarkMode,
+                      textPrimaryColor: textPrimaryColor,
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         );
       },
     );
+  }
+
+  Map<String, String> _calculateWorkloadStats(
+    TaskProvider taskProvider,
+    WorkloadProvider workloadProvider,
+  ) {
+    List<Task> filteredTasks = [];
+    Map<String, int> dailyWorkMinutes = {}; // Track work hours per day
+
+    switch (_selectedPeriod) {
+      case 'Daily':
+        // Get tasks for the current week displayed
+        final weekStart = workloadProvider.getWeekStartDate();
+        final weekEnd = weekStart.add(
+          const Duration(days: 6, hours: 23, minutes: 59, seconds: 59),
+        );
+        filteredTasks = taskProvider.tasks.where((t) {
+          if (t.deadline == null) return false;
+          return t.deadline!.isAfter(
+                weekStart.subtract(const Duration(days: 1)),
+              ) &&
+              t.deadline!.isBefore(weekEnd.add(const Duration(days: 1)));
+        }).toList();
+        break;
+      case 'Weekly':
+        // Get tasks for the current month
+        final monthDate = workloadProvider.getMonthDate();
+        filteredTasks = taskProvider.tasks.where((t) {
+          if (t.deadline == null) return false;
+          return t.deadline!.year == monthDate.year &&
+              t.deadline!.month == monthDate.month;
+        }).toList();
+        break;
+      case 'Monthly':
+        // Get tasks for the current year
+        final year = workloadProvider.getYear();
+        filteredTasks = taskProvider.tasks.where((t) {
+          if (t.deadline == null) return false;
+          return t.deadline!.year == year;
+        }).toList();
+        break;
+    }
+
+    // Group tasks by date and calculate daily work hours
+    for (var task in filteredTasks) {
+      if (task.deadline != null && task.durationMinutes != null) {
+        final dateKey =
+            '${task.deadline!.year}-${task.deadline!.month.toString().padLeft(2, '0')}-${task.deadline!.day.toString().padLeft(2, '0')}';
+        dailyWorkMinutes[dateKey] =
+            (dailyWorkMinutes[dateKey] ?? 0) + task.durationMinutes!;
+      }
+    }
+
+    // Calculate workload level based on daily hours
+    int heavyDays = 0;
+    int normalDays = 0;
+    int lightDays = 0;
+
+    for (var dailyMinutes in dailyWorkMinutes.values) {
+      final dailyHours = dailyMinutes / 60;
+      if (dailyHours >= 13) {
+        heavyDays++;
+      } else if (dailyHours >= 8) {
+        normalDays++;
+      } else if (dailyHours > 0) {
+        lightDays++;
+      }
+    }
+
+    // Determine overall workload status
+    String workloadValue;
+    if (heavyDays > 0) {
+      workloadValue = 'Berat ($heavyDays hari)';
+    } else if (normalDays > 0) {
+      workloadValue = 'Sedang ($normalDays hari)';
+    } else if (lightDays > 0) {
+      workloadValue = 'Ringan ($lightDays hari)';
+    } else {
+      workloadValue = 'Tidak ada';
+    }
+
+    // Calculate total work hours done (completed tasks)
+    int totalWorkHoursMinutes = 0;
+    for (var task in filteredTasks) {
+      if (task.isCompleted && task.durationMinutes != null) {
+        totalWorkHoursMinutes += task.durationMinutes!;
+      }
+    }
+
+    // Format work hours
+    final whHours = totalWorkHoursMinutes ~/ 60;
+    final whMins = totalWorkHoursMinutes % 60;
+    String workHoursValue;
+    if (whHours > 0 && whMins > 0) {
+      workHoursValue = '${whHours}j ${whMins}m';
+    } else if (whHours > 0) {
+      workHoursValue = '${whHours} jam';
+    } else {
+      workHoursValue = '${whMins} menit';
+    }
+
+    return {'workloadValue': workloadValue, 'workHoursValue': workHoursValue};
   }
 
   Widget _buildDateRangeNavigation(WorkloadProvider provider, bool isDarkMode) {
@@ -697,7 +832,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   ) async {
     final isFirstTimeSetup = !provider.hasWorkHours;
     final navigator = Navigator.of(context);
-    
+
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -712,136 +847,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               }
             : null,
       ),
-    );
-  }
-
-  Widget _buildStatisticsCards(bool isDarkMode) {
-    final textPrimaryColor = isDarkMode
-        ? AppTheme.darkTextPrimary
-        : AppTheme.textPrimary;
-
-    return Consumer2<ProfileProvider, TaskProvider>(
-      builder: (context, profileProvider, taskProvider, child) {
-        if (profileProvider.isLoading) {
-          return const Padding(
-            padding: EdgeInsets.all(16),
-            child: SkeletonStatsGrid(),
-          );
-        }
-
-        // Filter tasks based on selected period
-        List<Task> filteredTasks = [];
-        final now = DateTime.now();
-
-        switch (_selectedPeriod) {
-          case 'Daily':
-            filteredTasks = taskProvider.tasks.where((t) {
-              if (t.deadline == null) return false;
-              return t.deadline!.year == now.year &&
-                  t.deadline!.month == now.month &&
-                  t.deadline!.day == now.day;
-            }).toList();
-            break;
-          case 'Weekly':
-            // Simple weekly filter (current week)
-            // Assuming week starts on Monday
-            final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-            final endOfWeek = startOfWeek.add(const Duration(days: 6));
-            final start = DateTime(
-              startOfWeek.year,
-              startOfWeek.month,
-              startOfWeek.day,
-            );
-            final end = DateTime(
-              endOfWeek.year,
-              endOfWeek.month,
-              endOfWeek.day,
-              23,
-              59,
-              59,
-            );
-
-            filteredTasks = taskProvider.tasks.where((t) {
-              if (t.deadline == null) return false;
-              return t.deadline!.isAfter(start) && t.deadline!.isBefore(end);
-            }).toList();
-            break;
-          case 'Monthly':
-            filteredTasks = taskProvider.tasks.where((t) {
-              if (t.deadline == null) return false;
-              return t.deadline!.year == now.year &&
-                  t.deadline!.month == now.month;
-            }).toList();
-            break;
-        }
-
-        final int totalTasks = filteredTasks.length;
-        final int completedTasks = filteredTasks
-            .where((t) => t.isCompleted)
-            .length;
-
-        // Calculate total workload in minutes from filtered tasks
-        int totalWorkloadMinutes = 0;
-        for (var task in filteredTasks) {
-          if (!task.isCompleted && task.durationMinutes != null) {
-            totalWorkloadMinutes += task.durationMinutes!;
-          }
-        }
-
-        // Format workload as hours and minutes
-        final hours = totalWorkloadMinutes ~/ 60;
-        final minutes = totalWorkloadMinutes % 60;
-        String workloadValue;
-        if (hours > 0 && minutes > 0) {
-          workloadValue = '${hours}j ${minutes}m';
-        } else if (hours > 0) {
-          workloadValue = '${hours}j';
-        } else {
-          workloadValue = '${minutes}m';
-        }
-
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildStatCard(
-                      icon: Iconsax.task_square,
-                      iconColor: AppTheme.primaryColor,
-                      title: 'Total Tugas',
-                      value: '$totalTasks tugas',
-                      isDarkMode: isDarkMode,
-                      textPrimaryColor: textPrimaryColor,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildStatCard(
-                      icon: Iconsax.tick_circle,
-                      iconColor: AppTheme.secondaryColor,
-                      title: 'Tugas Selesai',
-                      value: '$completedTasks tugas',
-                      isDarkMode: isDarkMode,
-                      textPrimaryColor: textPrimaryColor,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _buildStatCard(
-                icon: Iconsax.weight,
-                iconColor: Colors.orange,
-                title: 'Total Beban Kerja',
-                value: workloadValue,
-                isDarkMode: isDarkMode,
-                textPrimaryColor: textPrimaryColor,
-              ),
-            ],
-          ),
-        );
-      },
     );
   }
 
@@ -899,6 +904,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _buildMiniStatCard({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String value,
+    required bool isDarkMode,
+    required Color textPrimaryColor,
+  }) {
+    final miniCardColor = isDarkMode
+        ? AppTheme.darkDivider.withValues(alpha: 0.3)
+        : Colors.grey.shade50;
+    final textSecondaryColor = isDarkMode
+        ? AppTheme.darkTextSecondary
+        : AppTheme.textSecondary;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: miniCardColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: iconColor, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: textSecondaryColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: TextStyle(
+                    color: textPrimaryColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCompletedTasksCard(bool isDarkMode) {
     final cardColor = isDarkMode ? AppTheme.darkCard : Colors.white;
     final textPrimaryColor = isDarkMode
@@ -908,8 +974,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ? AppTheme.darkDivider
         : Colors.grey.shade100;
 
-    return Consumer<CompletedTasksProvider>(
-      builder: (context, provider, child) {
+    return Consumer2<CompletedTasksProvider, TaskProvider>(
+      builder: (context, provider, taskProvider, child) {
+        // Calculate task stats based on selected period
+        final taskStats = _calculateTaskStats(taskProvider, provider);
+
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 16),
           padding: const EdgeInsets.all(20),
@@ -990,11 +1059,86 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 height: 200,
                 child: _buildCompletedChart(provider, isDarkMode),
               ),
+
+              const SizedBox(height: 20),
+
+              // Stats cards below chart
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildMiniStatCard(
+                      icon: Iconsax.task_square,
+                      iconColor: AppTheme.primaryColor,
+                      title: 'Total Tugas',
+                      value: '${taskStats['totalTasks']} tugas',
+                      isDarkMode: isDarkMode,
+                      textPrimaryColor: textPrimaryColor,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildMiniStatCard(
+                      icon: Iconsax.tick_circle,
+                      iconColor: AppTheme.secondaryColor,
+                      title: 'Tugas Selesai',
+                      value: '${taskStats['completedTasks']} tugas',
+                      isDarkMode: isDarkMode,
+                      textPrimaryColor: textPrimaryColor,
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         );
       },
     );
+  }
+
+  Map<String, int> _calculateTaskStats(
+    TaskProvider taskProvider,
+    CompletedTasksProvider completedProvider,
+  ) {
+    List<Task> filteredTasks = [];
+
+    switch (_selectedCompletedPeriod) {
+      case 'Daily':
+        // Get tasks for the current week displayed
+        final weekStart = completedProvider.getWeekStartDate();
+        final weekEnd = weekStart.add(
+          const Duration(days: 6, hours: 23, minutes: 59, seconds: 59),
+        );
+        filteredTasks = taskProvider.tasks.where((t) {
+          if (t.deadline == null) return false;
+          return t.deadline!.isAfter(
+                weekStart.subtract(const Duration(days: 1)),
+              ) &&
+              t.deadline!.isBefore(weekEnd.add(const Duration(days: 1)));
+        }).toList();
+        break;
+      case 'Weekly':
+        // Get tasks for the current month
+        final monthDate = completedProvider.getMonthDate();
+        filteredTasks = taskProvider.tasks.where((t) {
+          if (t.deadline == null) return false;
+          return t.deadline!.year == monthDate.year &&
+              t.deadline!.month == monthDate.month;
+        }).toList();
+        break;
+      case 'Monthly':
+        // Get tasks for the current year
+        final year = completedProvider.getYear();
+        filteredTasks = taskProvider.tasks.where((t) {
+          if (t.deadline == null) return false;
+          return t.deadline!.year == year;
+        }).toList();
+        break;
+    }
+
+    final totalTasks = filteredTasks.length;
+    final completedTasks = filteredTasks.where((t) => t.isCompleted).length;
+
+    return {'totalTasks': totalTasks, 'completedTasks': completedTasks};
   }
 
   Widget _buildCompletedDateRangeNavigation(

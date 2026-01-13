@@ -362,9 +362,31 @@ class CompletedTasksScreen extends StatelessWidget {
             child: const Text('Batal'),
           ),
           TextButton(
-            onPressed: () {
-              context.read<TaskProvider>().deleteCompletedTask(task.id);
+            onPressed: () async {
               Navigator.pop(context);
+              
+              try {
+                // Delete from server (will also remove from local state)
+                await context.read<TaskProvider>().deleteTaskFromServer(task.id);
+                
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Tugas "${task.title}" berhasil dihapus'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Gagal menghapus tugas: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Hapus'),
@@ -375,12 +397,19 @@ class CompletedTasksScreen extends StatelessWidget {
   }
 
   void _showDeleteAllConfirmation(BuildContext context) {
+    final taskProvider = context.read<TaskProvider>();
+    final completedTasks = taskProvider.tasks.where((t) => t.isCompleted).toList();
+    
+    if (completedTasks.isEmpty) {
+      return;
+    }
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Hapus Semua Tugas'),
-        content: const Text(
-          'Yakin ingin menghapus SEMUA tugas yang telah selesai? '
+        content: Text(
+          'Yakin ingin menghapus ${completedTasks.length} tugas yang telah selesai? '
           'Tindakan ini tidak dapat dibatalkan.',
         ),
         actions: [
@@ -389,9 +418,45 @@ class CompletedTasksScreen extends StatelessWidget {
             child: const Text('Batal'),
           ),
           TextButton(
-            onPressed: () {
-              context.read<TaskProvider>().deleteAllCompletedTasks();
+            onPressed: () async {
               Navigator.pop(context);
+              
+              // Show loading indicator
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Menghapus ${completedTasks.length} tugas...'),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              }
+              
+              int successCount = 0;
+              int failCount = 0;
+              
+              // Delete each completed task from server
+              for (final task in completedTasks) {
+                try {
+                  await taskProvider.deleteTaskFromServer(task.id);
+                  successCount++;
+                } catch (e) {
+                  failCount++;
+                }
+              }
+              
+              // Show result
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      failCount == 0
+                          ? '$successCount tugas berhasil dihapus'
+                          : '$successCount tugas dihapus, $failCount gagal',
+                    ),
+                    backgroundColor: failCount == 0 ? Colors.green : Colors.orange,
+                  ),
+                );
+              }
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Hapus Semua'),

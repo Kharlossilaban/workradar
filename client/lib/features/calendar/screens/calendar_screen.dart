@@ -72,15 +72,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
               if (!mounted) return;
 
-              // Auto-update workload when task is added
-              if (task.deadline != null &&
-                  task.durationMinutes != null &&
-                  task.durationMinutes! > 0) {
-                workloadProvider.recordScheduledTask(
-                  task.deadline!,
-                  duration: task.durationMinutes!,
-                );
-              }
+              // Refresh workload data from all tasks after adding new task
+              workloadProvider.syncFromTasks(taskProvider.tasks);
 
               if (!mounted) return;
               dialogNavigator.pop();
@@ -563,7 +556,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         task: task,
                         onTap: () {
                           final taskProvider = context.read<TaskProvider>();
-                          final scaffoldMessenger = ScaffoldMessenger.of(context);
+                          final workloadProvider = context
+                              .read<WorkloadProvider>();
+                          final scaffoldMessenger = ScaffoldMessenger.of(
+                            context,
+                          );
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -571,7 +568,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                 task: task,
                                 onTaskUpdated: (updatedTask) async {
                                   try {
-                                    await taskProvider.updateTaskOnServer(updatedTask);
+                                    await taskProvider.updateTaskOnServer(
+                                      updatedTask,
+                                    );
+                                    // Refresh workload after update
+                                    workloadProvider.syncFromTasks(
+                                      taskProvider.tasks,
+                                    );
                                   } catch (e) {
                                     scaffoldMessenger.showSnackBar(
                                       SnackBar(
@@ -585,7 +588,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                 },
                                 onTaskDeleted: () async {
                                   try {
-                                    await taskProvider.deleteTaskFromServer(task.id);
+                                    await taskProvider.deleteTaskFromServer(
+                                      task.id,
+                                    );
+                                    // Refresh workload after delete
+                                    workloadProvider.syncFromTasks(
+                                      taskProvider.tasks,
+                                    );
                                   } catch (e) {
                                     scaffoldMessenger.showSnackBar(
                                       SnackBar(
@@ -603,27 +612,29 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         },
                         onComplete: () async {
                           final taskProvider = context.read<TaskProvider>();
-                          final workloadProvider = context.read<WorkloadProvider>();
-                          final completedTasksProvider = context.read<CompletedTasksProvider>();
-                          final scaffoldMessenger = ScaffoldMessenger.of(context);
+                          final workloadProvider = context
+                              .read<WorkloadProvider>();
+                          final completedTasksProvider = context
+                              .read<CompletedTasksProvider>();
+                          final scaffoldMessenger = ScaffoldMessenger.of(
+                            context,
+                          );
 
                           try {
                             await taskProvider.toggleTaskCompletionOnServer(
-                                  task.id,
-                                  onCompleted: (_) {
-                                    // Record task completion in workload graph using task deadline
-                                    final date =
-                                        task.deadline ?? DateTime.now();
-                                    workloadProvider.recordTaskCompletion(
-                                      date,
-                                      duration: task.durationMinutes ?? 0,
-                                    );
-                                    // Record completed task in completed tasks provider
-                                    completedTasksProvider.recordTaskCompletion(
-                                      date,
-                                    );
-                                  },
+                              task.id,
+                              onCompleted: (_) {
+                                // Refresh workload data from all tasks (no need to manually record)
+                                workloadProvider.syncFromTasks(
+                                  taskProvider.tasks,
                                 );
+                                // Record completed task in completed tasks provider
+                                final date = task.deadline ?? DateTime.now();
+                                completedTasksProvider.recordTaskCompletion(
+                                  date,
+                                );
+                              },
+                            );
                           } catch (e) {
                             if (!mounted) return;
                             scaffoldMessenger.showSnackBar(

@@ -32,7 +32,7 @@ func (h *PaymentHandler) GetSnapToken(c *fiber.Ctx) error {
 	}
 
 	// Create Snap Token
-	snapToken, redirectURL, err := h.paymentService.CreateSnapToken(userID, models.PlanType(req.PlanType))
+	snapToken, redirectURL, orderID, err := h.paymentService.CreateSnapToken(userID, models.PlanType(req.PlanType))
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
@@ -42,6 +42,7 @@ func (h *PaymentHandler) GetSnapToken(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"token":        snapToken,
 		"redirect_url": redirectURL,
+		"order_id":     orderID,
 	})
 }
 

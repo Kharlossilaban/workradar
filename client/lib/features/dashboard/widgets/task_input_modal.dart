@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/models/task.dart';
+import '../../../core/services/category_api_service.dart';
+import '../../../core/services/task_api_service.dart';
 import '../../profile/providers/profile_provider.dart';
 import 'calendar_modal.dart';
 
@@ -18,7 +20,10 @@ class TaskInputModal extends StatefulWidget {
 
 class _TaskInputModalState extends State<TaskInputModal> {
   final _titleController = TextEditingController();
+  final _categoryApiService = CategoryApiService();
+  
   String? _selectedCategory;
+  String? _selectedCategoryId; // Store the category ID from server
   DateTime? _deadline;
   int? _reminderMinutes;
   RepeatType _repeatType = RepeatType.none;
@@ -27,12 +32,37 @@ class _TaskInputModalState extends State<TaskInputModal> {
   TaskDifficulty? _selectedDifficulty;
   int? _durationMinutes;
 
-  final List<String> _categories = [
-    'Kerja',
-    'Pribadi',
-    'Wishlist',
-    'Hari Ulang Tahun',
-  ];
+  List<CategoryModel> _categories = [];
+  bool _isLoadingCategories = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      final categories = await _categoryApiService.getCategories();
+      setState(() {
+        _categories = categories;
+        _isLoadingCategories = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoadingCategories = false;
+      });
+      // If failed to load categories, create default ones or show error
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal memuat kategori: $e'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -84,6 +114,7 @@ class _TaskInputModalState extends State<TaskInputModal> {
     final task = Task(
       id: const Uuid().v4(),
       userId: 'current_user', // Will be replaced with actual user ID
+      categoryId: _selectedCategoryId, // Use categoryId from server
       categoryName: _selectedCategory!,
       title: _titleController.text.trim(),
       deadline: _deadline,
@@ -165,211 +196,213 @@ class _TaskInputModalState extends State<TaskInputModal> {
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 8,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Category dropdown
-                      PopupMenuButton<String>(
-                        offset: const Offset(0, 40),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    // Category dropdown
+                    PopupMenuButton<String>(
+                      offset: const Offset(0, 40),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
                         ),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
+                        decoration: BoxDecoration(
+                          color: _selectedCategory != null
+                              ? _getCategoryColor().withValues(alpha: 0.1)
+                            : hintColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _isLoadingCategories 
+                                ? 'Memuat...'
+                                : _selectedCategory ?? 'Pilih Kategori',
+                            style: TextStyle(
+                              color: _selectedCategory != null
+                                  ? _getCategoryColor()
+                                  : hintColor,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
                           ),
-                          decoration: BoxDecoration(
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.arrow_drop_down,
                             color: _selectedCategory != null
-                                ? _getCategoryColor().withValues(alpha: 0.1)
-                                : hintColor.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                _selectedCategory ?? 'Pilih Kategori',
-                                style: TextStyle(
-                                  color: _selectedCategory != null
-                                      ? _getCategoryColor()
-                                      : hintColor,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Icon(
-                                Icons.arrow_drop_down,
-                                color: _selectedCategory != null
-                                    ? _getCategoryColor()
-                                    : hintColor,
-                                size: 20,
-                              ),
-                            ],
-                          ),
-                        ),
-                        itemBuilder: (context) => [
-                          ..._categories.map(
-                            (category) => PopupMenuItem(
-                              value: category,
-                              child: Text(category),
-                            ),
-                          ),
-                          const PopupMenuDivider(),
-                          PopupMenuItem(
-                            value: 'new',
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Iconsax.add,
-                                  size: 20,
-                                  color: AppTheme.primaryColor,
-                                ),
-                                const SizedBox(width: 8),
-                                const Text('Buat kategori baru'),
-                              ],
-                            ),
-                          ),
-                        ],
-                        onSelected: (value) {
-                          if (value == 'new') {
-                            // Show create category dialog
-                            _showCreateCategoryDialog();
-                          } else {
-                            setState(() => _selectedCategory = value);
-
-                            // Auto-suggest workload for "Kerja"
-                            if (value == 'Kerja') {
-                              final profileProvider = context
-                                  .read<ProfileProvider>();
-                              if (profileProvider.hasWorkHours) {
-                                setState(() {
-                                  _selectedDifficulty = TaskDifficulty.focus;
-                                });
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Saran: Beban kegiatan diatur ke "Berat" karena Anda memiliki jadwal kerja',
-                                    ),
-                                    duration: Duration(seconds: 2),
-                                  ),
-                                );
-                              }
-                            }
-                          }
-                        },
-                      ),
-
-                      const SizedBox(width: 8),
-
-                      // Difficulty dropdown
-                      PopupMenuButton<TaskDifficulty>(
-                        offset: const Offset(0, 40),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _selectedDifficulty != null
-                                ? Colors.amber.withValues(alpha: 0.1)
-                                : hintColor.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                _selectedDifficulty != null
-                                    ? _getDifficultyLabel(_selectedDifficulty!)
-                                    : 'Pilih Beban Kegiatan',
-                                style: TextStyle(
-                                  color: _selectedDifficulty != null
-                                      ? Colors.amber
-                                      : hintColor,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Icon(
-                                Icons.arrow_drop_down,
-                                color: _selectedDifficulty != null
-                                    ? Colors.amber
-                                    : hintColor,
-                                size: 20,
-                              ),
-                            ],
-                          ),
-                        ),
-                        itemBuilder: (context) => [
-                          PopupMenuItem(
-                            value: TaskDifficulty.relaxed,
-                            child: Text(
-                              _getDifficultyLabel(TaskDifficulty.relaxed),
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: TaskDifficulty.normal,
-                            child: Text(
-                              _getDifficultyLabel(TaskDifficulty.normal),
-                            ),
-                          ),
-                          PopupMenuItem(
-                            value: TaskDifficulty.focus,
-                            child: Text(
-                              _getDifficultyLabel(TaskDifficulty.focus),
-                            ),
-                          ),
-                        ],
-                        onSelected: (value) {
-                          setState(() => _selectedDifficulty = value);
-                        },
-                      ),
-
-                      const SizedBox(width: 16),
-
-                      // Calendar button
-                      IconButton(
-                        onPressed: _showCalendarModal,
-                        icon: Icon(
-                          _deadline != null
-                              ? Iconsax.calendar_15
-                              : Iconsax.calendar,
-                          color: _deadline != null
-                              ? AppTheme.primaryColor
-                              : AppTheme.textLight,
-                        ),
-                      ),
-
-                      // Send button
-                      IconButton(
-                        onPressed: _createTask,
-                        icon: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryColor,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Icon(
-                            Iconsax.send_1,
-                            color: Colors.white,
+                                ? _getCategoryColor()
+                                : hintColor,
                             size: 20,
                           ),
+                        ],
+                      ),
+                    ),
+                    itemBuilder: (context) => [
+                      ..._categories.map(
+                        (category) => PopupMenuItem(
+                          value: category.id,
+                          child: Text(category.name),
+                        ),
+                      ),
+                      const PopupMenuDivider(),
+                      const PopupMenuItem(
+                        value: 'new',
+                        child: Row(
+                          children: [
+                            Icon(
+                              Iconsax.add,
+                              size: 20,
+                              color: AppTheme.primaryColor,
+                            ),
+                            SizedBox(width: 8),
+                            Text('Buat kategori baru'),
+                          ],
                         ),
                       ),
                     ],
+                    onSelected: (value) {
+                      if (value == 'new') {
+                        // Show create category dialog
+                        _showCreateCategoryDialog();
+                      } else {
+                        // Find the selected category
+                        final category = _categories.firstWhere(
+                          (cat) => cat.id == value,
+                        );
+                        setState(() {
+                          _selectedCategoryId = category.id;
+                          _selectedCategory = category.name;
+                        });
+
+                        // Auto-suggest workload for "Kerja"
+                        if (category.name == 'Kerja') {
+                          final profileProvider = context
+                              .read<ProfileProvider>();
+                          if (profileProvider.hasWorkHours) {
+                            setState(() {
+                              _selectedDifficulty = TaskDifficulty.focus;
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Saran: Beban kegiatan diatur ke "Berat" karena Anda memiliki jadwal kerja',
+                                ),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        }
+                      }
+                    },
                   ),
-                ),
+
+                  const SizedBox(width: 8),
+
+                  // Difficulty dropdown
+                  PopupMenuButton<TaskDifficulty>(
+                    offset: const Offset(0, 40),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: _selectedDifficulty != null
+                            ? Colors.amber.withValues(alpha: 0.1)
+                            : hintColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _selectedDifficulty != null
+                                ? _getDifficultyLabel(_selectedDifficulty!)
+                                : 'Pilih Beban Kegiatan',
+                            style: TextStyle(
+                              color: _selectedDifficulty != null
+                                  ? Colors.amber
+                                  : hintColor,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.arrow_drop_down,
+                            color: _selectedDifficulty != null
+                                ? Colors.amber
+                                : hintColor,
+                            size: 20,
+                          ),
+                        ],
+                      ),
+                    ),
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: TaskDifficulty.relaxed,
+                        child: Text(
+                          _getDifficultyLabel(TaskDifficulty.relaxed),
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: TaskDifficulty.normal,
+                        child: Text(_getDifficultyLabel(TaskDifficulty.normal)),
+                      ),
+                      PopupMenuItem(
+                        value: TaskDifficulty.focus,
+                        child: Text(_getDifficultyLabel(TaskDifficulty.focus)),
+                      ),
+                    ],
+                    onSelected: (value) {
+                      setState(() => _selectedDifficulty = value);
+                    },
+                  ),
+
+                  const SizedBox(width: 16),
+
+                  // Calendar button
+                  IconButton(
+                    onPressed: _showCalendarModal,
+                    icon: Icon(
+                      _deadline != null
+                          ? Iconsax.calendar_15
+                          : Iconsax.calendar,
+                      color: _deadline != null
+                          ? AppTheme.primaryColor
+                          : AppTheme.textLight,
+                    ),
+                  ),
+
+                  // Send button
+                  IconButton(
+                    onPressed: _createTask,
+                    icon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Iconsax.send_1,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ],
               ),
+            ),
+          ),
             ],
           ),
         ),
@@ -415,6 +448,7 @@ class _TaskInputModalState extends State<TaskInputModal> {
           controller: controller,
           decoration: const InputDecoration(hintText: 'Nama kategori'),
           autofocus: true,
+          textCapitalization: TextCapitalization.words,
         ),
         actions: [
           TextButton(
@@ -422,13 +456,49 @@ class _TaskInputModalState extends State<TaskInputModal> {
             child: const Text('Batal'),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               if (controller.text.trim().isNotEmpty) {
-                setState(() {
-                  _categories.add(controller.text.trim());
-                  _selectedCategory = controller.text.trim();
-                });
                 Navigator.pop(context);
+                
+                // Show loading
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Membuat kategori baru...'),
+                    duration: Duration(seconds: 1),
+                  ),
+                );
+
+                try {
+                  // Create category via API
+                  final newCategory = await _categoryApiService.createCategory(
+                    name: controller.text.trim(),
+                    color: _getRandomColor(), // Generate random color
+                  );
+
+                  // Add to local list
+                  setState(() {
+                    _categories.add(newCategory);
+                    _selectedCategoryId = newCategory.id;
+                    _selectedCategory = newCategory.name;
+                  });
+
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Kategori "${newCategory.name}" berhasil dibuat'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                } catch (e) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Gagal membuat kategori: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               }
             },
             child: const Text('Simpan'),
@@ -436,5 +506,21 @@ class _TaskInputModalState extends State<TaskInputModal> {
         ],
       ),
     );
+  }
+
+  String _getRandomColor() {
+    // Generate random color for new category
+    final colors = [
+      '#6C5CE7', // Purple
+      '#00B894', // Green
+      '#0984E3', // Blue
+      '#FD79A8', // Pink
+      '#FDCB6E', // Yellow
+      '#E17055', // Orange
+      '#74B9FF', // Light Blue
+      '#A29BFE', // Lavender
+    ];
+    colors.shuffle();
+    return colors.first;
   }
 }
