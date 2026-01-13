@@ -15,7 +15,7 @@ services:
       MYSQL_USER: workradar_user
       MYSQL_PASSWORD: workradar_password_2024
     ports:
-      - "3306:3306"
+      - "3307:3306" # Changed to 3307 to avoid conflict with Laravel MySQL
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
@@ -37,7 +37,7 @@ services:
     container_name: workradar-api
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "8082:8080" # Changed to 8082 to avoid conflict with Laravel nginx
     environment:
       - PORT=8080
       - ENV=development
@@ -49,6 +49,15 @@ services:
       - JWT_SECRET=workradar-docker-secret-key-2024
       - JWT_EXPIRY=24h
       - ALLOWED_ORIGINS=*
+      # Dummy Values agar app tidak crash saat init
+      - FIREBASE_PROJECT_ID=workradar-dev
+      - FIREBASE_CREDENTIALS_FILE=
+      - GEMINI_API_KEY=dummy_key
+      - WEATHER_API_KEY=dummy_key
+      - MIDTRANS_SERVER_KEY=SB-Mid-server-dummy
+      - SMTP_HOST=smtp.mailtrap.io
+      - GOOGLE_CLIENT_ID=dummy_id
+      - GOOGLE_CLIENT_SECRET=dummy_secret
     depends_on:
       mysql:
         condition: service_healthy
