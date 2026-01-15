@@ -74,12 +74,13 @@ class WorkloadProvider with ChangeNotifier {
   }
 
   /// Sync workload data from a list of tasks
-  /// Now includes ALL tasks (completed and pending) to show workload properly
+  /// Only includes COMPLETED tasks to show actual workload (work done)
   void syncFromTasks(List<Task> tasks) {
     _taskDurations.clear();
     for (final task in tasks) {
-      // Include all tasks with deadlines and duration (not just completed)
-      if (task.deadline != null &&
+      // ✅ FIX: Only count COMPLETED tasks with deadline and duration
+      if (task.isCompleted &&
+          task.deadline != null &&
           task.durationMinutes != null &&
           task.durationMinutes! > 0) {
         final date = task.deadline!;
