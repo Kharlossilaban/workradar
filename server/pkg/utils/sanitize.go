@@ -39,23 +39,24 @@ func DefaultSanitizeConfig() SanitizationConfig {
 // ============================================
 
 var sqlInjectionPatterns = []*regexp.Regexp{
-	// Basic SQL keywords
-	regexp.MustCompile(`(?i)(\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|ALTER|CREATE|TRUNCATE|EXEC|EXECUTE)\b)`),
+	// Basic SQL keywords with context (not standalone)
+	regexp.MustCompile(`(?i)(\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|ALTER|CREATE|TRUNCATE|EXEC|EXECUTE)\b\s+(FROM|INTO|TABLE|DATABASE))`),
 	// SQL comments
 	regexp.MustCompile(`(--|\#|/\*|\*/)`),
-	// SQL operators with quotes
-	regexp.MustCompile(`(?i)('|\"|;|=|<|>|\|\||\band\b|\bor\b|\bnot\b)`),
-	// Hex encoding
-	regexp.MustCompile(`(?i)(0x[0-9a-f]+)`),
+	// SQL operators with quotes (more specific - must have SQL context)
+	regexp.MustCompile(`(?i)('\s*(OR|AND)\s*'?\d*'?\s*=\s*'?\d*)`),
+	regexp.MustCompile(`(?i)('\s*(OR|AND)\s+\d+\s*=\s*\d+)`),
+	// Hex encoding with SQL context
+	regexp.MustCompile(`(?i)(0x[0-9a-f]{8,})`),
 	// CHAR/CHR function
 	regexp.MustCompile(`(?i)(char|chr)\s*\(`),
-	// SQL wildcard abuse
+	// SQL wildcard abuse (URL encoded)
 	regexp.MustCompile(`(\%27)|(\%22)|(\%00)`),
-	// Stacked queries
+	// Stacked queries with SQL keywords
 	regexp.MustCompile(`;\s*(SELECT|INSERT|UPDATE|DELETE|DROP)`),
-	// Common injection patterns
-	regexp.MustCompile(`(?i)('\s*OR\s*'?\d*'?\s*=\s*'?\d*)`),
-	regexp.MustCompile(`(?i)('\s*OR\s*'[^']*'\s*=\s*'[^']*')`),
+	// Common injection patterns with context
+	regexp.MustCompile(`(?i)('\s*OR\s*'[^']+'\s*=\s*'[^']+)`),
+	regexp.MustCompile(`(?i)('\s*AND\s*'[^']+'\s*=\s*'[^']+)`),
 	regexp.MustCompile(`(?i)(admin'\s*--)`),
 	regexp.MustCompile(`(?i)('\s*;\s*DROP\s+TABLE)`),
 	// Time-based blind injection
@@ -588,7 +589,9 @@ func ValidatePasswordWithConfig(password string, config PasswordComplexityConfig
 	if config.DisallowCommon {
 		lowerPassword := strings.ToLower(password)
 		for _, common := range CommonPasswords {
-			if lowerPassword == common || strings.Contains(lowerPassword, common) {
+			// Only reject if it's an exact match or if the password is short and contains the common pattern
+			// For passwords >= 20 chars, allow common words as they are likely part of a passphrase
+			if lowerPassword == common || (len(password) < 20 && strings.Contains(lowerPassword, common)) {
 				result.IsValid = false
 				result.Errors = append(result.Errors, "Password is too common or contains a common pattern")
 				break
@@ -617,16 +620,29 @@ func CalculatePasswordStrength(password string) int {
 
 	// Character variety (max 40)
 	var hasUpper, hasLower, hasDigit, hasSpecial bool
+	charTypeCount := 0
 	for _, char := range password {
 		switch {
 		case unicode.IsUpper(char):
-			hasUpper = true
+			if !hasUpper {
+				hasUpper = true
+				charTypeCount++
+			}
 		case unicode.IsLower(char):
-			hasLower = true
+			if !hasLower {
+				hasLower = true
+				charTypeCount++
+			}
 		case unicode.IsDigit(char):
-			hasDigit = true
+			if !hasDigit {
+				hasDigit = true
+				charTypeCount++
+			}
 		case unicode.IsPunct(char) || unicode.IsSymbol(char):
-			hasSpecial = true
+			if !hasSpecial {
+				hasSpecial = true
+				charTypeCount++
+			}
 		}
 	}
 
@@ -641,6 +657,14 @@ func CalculatePasswordStrength(password string) int {
 	}
 	if hasSpecial {
 		score += 10
+	}
+
+	// Penalty for passwords with only one character type
+	if charTypeCount == 1 {
+		score -= 20
+		if score < 0 {
+			score = 0
+		}
 	}
 
 	// Uniqueness (max 20)

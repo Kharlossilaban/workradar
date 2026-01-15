@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
@@ -336,8 +337,8 @@ func TestQueryParameterInjection(t *testing.T) {
 		expectedStatus int
 	}{
 		{"Safe query", "?search=john", 200},
-		{"SQL injection in query", "?search=' OR '1'='1", 400},
-		{"Union injection", "?id=1 UNION SELECT * FROM users", 400},
+		{"SQL injection in query", "?search=" + url.QueryEscape("' OR '1'='1"), 400},
+		{"Union injection", "?id=" + url.QueryEscape("1 UNION SELECT * FROM users"), 400},
 	}
 
 	for _, tc := range tests {
