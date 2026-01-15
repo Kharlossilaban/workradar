@@ -1403,34 +1403,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
                 ),
               ),
-              const SizedBox(width: 12),
-              // Messages/Inbox Card
-              Expanded(
-                child: Consumer<MessagingProvider>(
-                  builder: (context, messaging, child) {
-                    final unreadCount = messaging.unreadCount;
-
-                    return _buildActionCard(
-                      isDarkMode: isDarkMode,
-                      icon: Iconsax.message,
-                      title: 'Pesan Bot',
-                      subtitle: unreadCount > 0
-                          ? '$unreadCount pesan baru'
-                          : 'Lihat semua pesan',
-                      color: Colors.orange,
-                      badge: unreadCount > 0 ? unreadCount : null,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const MessagesScreen(),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
             ],
           ),
         ],
