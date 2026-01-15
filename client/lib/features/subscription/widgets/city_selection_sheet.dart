@@ -16,6 +16,7 @@ class CitySelectionSheet extends StatelessWidget {
     {'name': 'Jakarta,ID', 'display': 'Jakarta', 'province': 'DKI Jakarta'},
     {'name': 'Surabaya,ID', 'display': 'Surabaya', 'province': 'Jawa Timur'},
     {'name': 'Bandung,ID', 'display': 'Bandung', 'province': 'Jawa Barat'},
+    {'name': 'Batam', 'display': 'Batam', 'province': 'Kepulauan Riau', 'lat': 1.0456, 'lon': 104.0305}, // Using coordinates
     {'name': 'Medan,ID', 'display': 'Medan', 'province': 'Sumatera Utara'},
     {'name': 'Semarang,ID', 'display': 'Semarang', 'province': 'Jawa Tengah'},
     {'name': 'Makassar,ID', 'display': 'Makassar', 'province': 'Sulawesi Selatan'},

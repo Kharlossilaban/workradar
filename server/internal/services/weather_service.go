@@ -184,6 +184,69 @@ func (s *WeatherService) GetWeatherByCity(city string) (*CurrentWeather, error) 
 	return weather, nil
 }
 
+// GetWeatherByCoordinates fetches current weather by latitude and longitude
+func (s *WeatherService) GetWeatherByCoordinates(lat, lon float64) (*CurrentWeather, error) {
+	if s.apiKey == "" {
+		return nil, fmt.Errorf("weather API key not configured")
+	}
+
+	log.Printf("🌤️ Weather: Fetching weather for coordinates: lat=%.4f, lon=%.4f", lat, lon)
+
+	// Build URL
+	endpoint := fmt.Sprintf("%s/weather", s.baseURL)
+	params := url.Values{}
+	params.Add("lat", fmt.Sprintf("%.4f", lat))
+	params.Add("lon", fmt.Sprintf("%.4f", lon))
+	params.Add("appid", s.apiKey)
+	params.Add("units", "metric") // Celsius
+
+	fullURL := fmt.Sprintf("%s?%s", endpoint, params.Encode())
+
+	// Make request
+	resp, err := s.client.Get(fullURL)
+	if err != nil {
+		log.Printf("❌ Weather: HTTP request failed: %v", err)
+		return nil, fmt.Errorf("failed to fetch weather: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		log.Printf("❌ Weather: API error %d: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("weather API returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Parse response
+	var owmResp owmCurrentResponse
+	if err := json.NewDecoder(resp.Body).Decode(&owmResp); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	// Map to our structure
+	weather := &CurrentWeather{
+		Temperature: owmResp.Main.Temp,
+		FeelsLike:   owmResp.Main.FeelsLike,
+		TempMin:     owmResp.Main.TempMin,
+		TempMax:     owmResp.Main.TempMax,
+		Pressure:    owmResp.Main.Pressure,
+		Humidity:    owmResp.Main.Humidity,
+		WindSpeed:   owmResp.Wind.Speed,
+		Clouds:      owmResp.Clouds.All,
+		CityName:    owmResp.Name,
+		Country:     owmResp.Sys.Country,
+		Sunrise:     owmResp.Sys.Sunrise,
+		Sunset:      owmResp.Sys.Sunset,
+	}
+
+	if len(owmResp.Weather) > 0 {
+		weather.Description = owmResp.Weather[0].Description
+		weather.Icon = owmResp.Weather[0].Icon
+	}
+
+	log.Printf("✅ Weather: Successfully fetched weather for %s (%.1f°C) from coordinates", weather.CityName, weather.Temperature)
+	return weather, nil
+}
+
 // GetForecast fetches 5-day weather forecast for a city
 func (s *WeatherService) GetForecast(city string, days int) (*WeatherForecast, error) {
 	if s.apiKey == "" {

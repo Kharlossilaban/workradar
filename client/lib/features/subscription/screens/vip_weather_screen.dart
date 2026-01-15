@@ -36,7 +36,14 @@ class _VipWeatherScreenState extends State<VipWeatherScreen> {
     });
 
     try {
-      final data = await _weatherService.getWeatherData(_selectedCity);
+      // Special handling for Batam - use coordinates instead of city name
+      String queryCity = _selectedCity;
+      if (_selectedCity == 'Batam') {
+        // Batam coordinates: 1.0456°N, 104.0305°E
+        queryCity = 'Batam?lat=1.0456&lon=104.0305';
+      }
+      
+      final data = await _weatherService.getWeatherData(queryCity);
       setState(() {
         _currentWeather = data.current;
         _forecast = data.forecast;

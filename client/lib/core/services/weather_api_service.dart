@@ -154,7 +154,8 @@ class WeatherForecast {
 class WeatherApiService {
   final ApiClient _apiClient = ApiClient();
 
-  /// Get current weather by city name
+  /// Get current weather by city name or coordinates (for cities like Batam)
+  /// Supports format: "CityName" or "CityName?lat=1.0456&lon=104.0305"
   Future<CurrentWeather> getCurrentWeather(String city) async {
     try {
       final response = await _apiClient.get(
@@ -176,7 +177,7 @@ class WeatherApiService {
     }
   }
 
-  /// Get hourly weather forecast by city name
+  /// Get hourly weather forecast by city name or coordinates
   Future<WeatherForecast> getHourlyForecast(String city, {int hours = 12}) async {
     try {
       final response = await _apiClient.get(
