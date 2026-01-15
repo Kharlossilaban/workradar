@@ -78,12 +78,13 @@ class WorkloadProvider with ChangeNotifier {
   void syncFromTasks(List<Task> tasks) {
     _taskDurations.clear();
     for (final task in tasks) {
-      // ✅ FIX: Only count COMPLETED tasks with deadline and duration
+      // ✅ FIX: Only count COMPLETED tasks with completedAt and duration
+      // Use completedAt date (when work was done) not deadline
       if (task.isCompleted &&
-          task.deadline != null &&
+          task.completedAt != null &&
           task.durationMinutes != null &&
           task.durationMinutes! > 0) {
-        final date = task.deadline!;
+        final date = task.completedAt!; // Use when task was completed
         final dateKey = _formatDateKey(date);
         final duration = task.durationMinutes!;
         final category = task.categoryName;
