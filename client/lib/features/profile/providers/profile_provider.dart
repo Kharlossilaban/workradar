@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/services/profile_api_service.dart';
 import '../../../core/network/api_exception.dart';
+import '../../../core/storage/secure_storage.dart';
 
 /// Model for daily work hours
 class DailyWorkHours {
@@ -36,8 +37,8 @@ class DailyWorkHours {
 class ProfileProvider with ChangeNotifier {
   final ProfileApiService _apiService = ProfileApiService();
 
-  String _username = 'John Doe';
-  String _gmail = 'john.doe@gmail.com';
+  String _username = '';
+  String _gmail = '';
   String? _userId;
 
   // Stats from server
@@ -49,6 +50,20 @@ class ProfileProvider with ChangeNotifier {
 
   bool _isLoading = false;
   String? _errorMessage;
+
+  // Constructor: Load username from storage on init
+  ProfileProvider() {
+    _loadUsernameFromStorage();
+  }
+
+  /// Load username from secure storage (fallback for quick display)
+  Future<void> _loadUsernameFromStorage() async {
+    final storedUsername = await SecureStorage.getUsername();
+    if (storedUsername != null && storedUsername.isNotEmpty) {
+      _username = storedUsername;
+      notifyListeners();
+    }
+  }
 
   // Legacy single work hours (for backward compatibility)
   TimeOfDay? _workStart;

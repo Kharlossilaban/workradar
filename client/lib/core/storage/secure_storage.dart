@@ -13,6 +13,7 @@ class SecureStorage {
   static const String _keyUserId = 'user_id';
   static const String _keyUserEmail = 'user_email';
   static const String _keyUserType = 'user_type';
+  static const String _keyUsername = 'username';
   static const String _keyBiometricEnabled = 'biometric_enabled';
 
   /// Save access token
@@ -61,6 +62,16 @@ class SecureStorage {
   /// Get user type
   static Future<String?> getUserType() async {
     return await _storage.read(key: _keyUserType);
+  }
+
+  /// Save username
+  static Future<void> saveUsername(String username) async {
+    await _storage.write(key: _keyUsername, value: username);
+  }
+
+  /// Get username
+  static Future<String?> getUsername() async {
+    return await _storage.read(key: _keyUsername);
   }
 
   /// Check if user is logged in (has valid tokens)

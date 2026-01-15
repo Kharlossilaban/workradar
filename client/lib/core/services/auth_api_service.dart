@@ -206,6 +206,8 @@ class AuthApiService {
         email: auth.user!.email,
         userType: auth.user!.userType,
       );
+      // Save username for quick access
+      await SecureStorage.saveUsername(auth.user!.username);
     }
   }
 }

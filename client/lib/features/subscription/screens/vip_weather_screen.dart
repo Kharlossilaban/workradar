@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/services/weather_api_service.dart';
 import '../widgets/city_selection_sheet.dart';
+import '../../profile/providers/profile_provider.dart';
 
 class VipWeatherScreen extends StatefulWidget {
   const VipWeatherScreen({super.key});
@@ -14,7 +16,6 @@ class VipWeatherScreen extends StatefulWidget {
 
 class _VipWeatherScreenState extends State<VipWeatherScreen> {
   String _selectedCity = 'Jakarta,ID'; // Use city with country code for better accuracy
-  final String _username = 'John Doe';
   final WeatherApiService _weatherService = WeatherApiService();
 
   // Real weather data from API
@@ -309,13 +310,15 @@ class _VipWeatherScreenState extends State<VipWeatherScreen> {
     Color textSecondaryColor,
   ) {
     final iconColor = isDarkMode ? Colors.white : AppTheme.primaryColor;
+    final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
+    final username = profileProvider.username;
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         // Personal Greeting (Above weather icon)
         Text(
-          '${_getGreeting()}, $_username! 👋',
+          '${_getGreeting()}, $username! 👋',
           style: TextStyle(
             color: textColor.withValues(alpha: 0.9),
             fontSize: 20,
