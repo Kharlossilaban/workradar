@@ -28,7 +28,7 @@ func NewAIService(chatRepo *repository.ChatRepository, taskRepo *repository.Task
 		taskRepo: taskRepo,
 		userRepo: userRepo,
 		apiKey:   apiKey,
-		model:    "gemini-1.5-flash", // Fixed: removed -latest suffix
+		model:    "gemini-pro", // gemini-pro is supported by v1beta API
 		ctx:      context.Background(),
 	}
 }
