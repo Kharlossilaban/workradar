@@ -48,6 +48,8 @@ func (s *TaskService) CreateTask(userID string, data CreateTaskDTO) (*models.Tas
 		Description:     data.Description,
 		Deadline:        data.Deadline,
 		ReminderMinutes: data.ReminderMinutes,
+		DurationMinutes: data.DurationMinutes, // ✅ FIX: Save duration
+		Difficulty:      data.Difficulty,      // ✅ FIX: Save difficulty
 		RepeatType:      data.RepeatType,
 		RepeatInterval:  data.RepeatInterval,
 		RepeatEndDate:   data.RepeatEndDate,
@@ -130,6 +132,15 @@ func (s *TaskService) UpdateTask(userID, taskID string, data UpdateTaskDTO) (*mo
 		task.ReminderMinutes = data.ReminderMinutes
 	}
 
+	// ✅ FIX: Handle duration and difficulty updates
+	if data.DurationMinutes != nil {
+		task.DurationMinutes = data.DurationMinutes
+	}
+
+	if data.Difficulty != nil {
+		task.Difficulty = data.Difficulty
+	}
+
 	if data.RepeatType != nil {
 		task.RepeatType = *data.RepeatType
 	}
@@ -206,6 +217,7 @@ func (s *TaskService) ToggleTaskComplete(userID, taskID string) (*models.Task, e
 					Deadline:        &nextDeadline,
 					ReminderMinutes: task.ReminderMinutes,
 					DurationMinutes: task.DurationMinutes,
+					Difficulty:      task.Difficulty, // ✅ FIX: Copy difficulty to next occurrence
 					RepeatType:      task.RepeatType,
 					RepeatInterval:  task.RepeatInterval,
 					RepeatEndDate:   task.RepeatEndDate,
@@ -254,6 +266,8 @@ type CreateTaskDTO struct {
 	Description     *string           `json:"description"`
 	Deadline        *time.Time        `json:"deadline"`
 	ReminderMinutes *int              `json:"reminder_minutes"`
+	DurationMinutes *int              `json:"duration_minutes"` // ✅ FIX: Added
+	Difficulty      *string           `json:"difficulty"`       // ✅ FIX: Added
 	RepeatType      models.RepeatType `json:"repeat_type"`
 	RepeatInterval  int               `json:"repeat_interval"`
 	RepeatEndDate   *time.Time        `json:"repeat_end_date"`
@@ -265,6 +279,8 @@ type UpdateTaskDTO struct {
 	Description     *string            `json:"description"`
 	Deadline        *time.Time         `json:"deadline"`
 	ReminderMinutes *int               `json:"reminder_minutes"`
+	DurationMinutes *int               `json:"duration_minutes"` // ✅ FIX: Added
+	Difficulty      *string            `json:"difficulty"`       // ✅ FIX: Added
 	RepeatType      *models.RepeatType `json:"repeat_type"`
 	RepeatInterval  *int               `json:"repeat_interval"`
 	RepeatEndDate   *time.Time         `json:"repeat_end_date"`
