@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"time"
@@ -121,6 +122,8 @@ func (s *WeatherService) GetWeatherByCity(city string) (*CurrentWeather, error) 
 		return nil, fmt.Errorf("weather API key not configured")
 	}
 
+	log.Printf("🌤️ Weather: Fetching weather for city: %s", city)
+
 	// Build URL
 	endpoint := fmt.Sprintf("%s/weather", s.baseURL)
 	params := url.Values{}
@@ -129,16 +132,24 @@ func (s *WeatherService) GetWeatherByCity(city string) (*CurrentWeather, error) 
 	params.Add("units", "metric") // Celsius
 
 	fullURL := fmt.Sprintf("%s?%s", endpoint, params.Encode())
+	log.Printf("🌤️ Weather: API URL: %s (key hidden)", endpoint+"?q="+city+"&units=metric")
 
 	// Make request
 	resp, err := s.client.Get(fullURL)
 	if err != nil {
+		log.Printf("❌ Weather: HTTP request failed: %v", err)
 		return nil, fmt.Errorf("failed to fetch weather: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
+		log.Printf("❌ Weather: API error %d: %s", resp.StatusCode, string(body))
+		
+		// Better error message for common issues
+		if resp.StatusCode == 404 {
+			return nil, fmt.Errorf("city '%s' not found. Try using format: CityName,CountryCode (e.g., Jakarta,ID)", city)
+		}
 		return nil, fmt.Errorf("weather API returned status %d: %s", resp.StatusCode, string(body))
 	}
 
@@ -169,6 +180,7 @@ func (s *WeatherService) GetWeatherByCity(city string) (*CurrentWeather, error) 
 		weather.Icon = owmResp.Weather[0].Icon
 	}
 
+	log.Printf("✅ Weather: Successfully fetched weather for %s, %s (%.1f°C)", weather.CityName, weather.Country, weather.Temperature)
 	return weather, nil
 }
 
