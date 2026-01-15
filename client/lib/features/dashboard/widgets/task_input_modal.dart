@@ -200,7 +200,7 @@ class _TaskInputModalState extends State<TaskInputModal> {
                   children: [
                     // Category dropdown - FIXED WIDTH
                     SizedBox(
-                      width: 130,
+                      width: 150,
                       child: PopupMenuButton<String>(
                         offset: const Offset(0, 40),
                         shape: RoundedRectangleBorder(
@@ -220,16 +220,20 @@ class _TaskInputModalState extends State<TaskInputModal> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                _isLoadingCategories
-                                    ? 'Memuat...'
-                                    : _selectedCategory ?? 'Pilih Kategori',
-                                style: TextStyle(
-                                  color: _selectedCategory != null
-                                      ? _getCategoryColor()
-                                      : hintColor,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
+                              Expanded(
+                                child: Text(
+                                  _isLoadingCategories
+                                      ? 'Memuat...'
+                                      : _selectedCategory ?? 'Pilih Kategori',
+                                  style: TextStyle(
+                                    color: _selectedCategory != null
+                                        ? _getCategoryColor()
+                                        : hintColor,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
                                 ),
                               ),
                               const SizedBox(width: 4),
@@ -307,7 +311,7 @@ class _TaskInputModalState extends State<TaskInputModal> {
 
                     // Difficulty dropdown - FIXED WIDTH
                     SizedBox(
-                      width: 115,
+                      width: 125,
                       child: PopupMenuButton<TaskDifficulty>(
                         offset: const Offset(0, 40),
                         shape: RoundedRectangleBorder(
@@ -327,16 +331,22 @@ class _TaskInputModalState extends State<TaskInputModal> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                _selectedDifficulty != null
-                                    ? _getDifficultyLabel(_selectedDifficulty!)
-                                    : 'Pilih Beban',
-                                style: TextStyle(
-                                  color: _selectedDifficulty != null
-                                      ? Colors.amber
-                                      : hintColor,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
+                              Expanded(
+                                child: Text(
+                                  _selectedDifficulty != null
+                                      ? _getDifficultyLabel(
+                                          _selectedDifficulty!,
+                                        )
+                                      : 'Pilih Beban',
+                                  style: TextStyle(
+                                    color: _selectedDifficulty != null
+                                        ? Colors.amber
+                                        : hintColor,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
                                 ),
                               ),
                               const SizedBox(width: 4),
