@@ -193,19 +193,18 @@ class _TaskInputModalState extends State<TaskInputModal> {
 
               Divider(height: 1, color: dividerColor),
 
-              // Action row - wrapped in SingleChildScrollView to prevent overflow
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 8,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Category dropdown
-                      PopupMenuButton<String>(
+              // Action row - fixed width to prevent shifting
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 8,
+                ),
+                child: Row(
+                  children: [
+                    // Category dropdown - FIXED WIDTH
+                    SizedBox(
+                      width: 130,
+                      child: PopupMenuButton<String>(
                         offset: const Offset(0, 40),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -305,11 +304,14 @@ class _TaskInputModalState extends State<TaskInputModal> {
                           }
                         },
                       ),
+                    ),
 
-                      const SizedBox(width: 8),
+                    const SizedBox(width: 8),
 
-                      // Difficulty dropdown
-                      PopupMenuButton<TaskDifficulty>(
+                    // Difficulty dropdown - FIXED WIDTH
+                    SizedBox(
+                      width: 115,
+                      child: PopupMenuButton<TaskDifficulty>(
                         offset: const Offset(0, 40),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -331,7 +333,7 @@ class _TaskInputModalState extends State<TaskInputModal> {
                               Text(
                                 _selectedDifficulty != null
                                     ? _getDifficultyLabel(_selectedDifficulty!)
-                                    : 'Pilih Beban Kegiatan',
+                                    : 'Pilih Beban',
                                 style: TextStyle(
                                   color: _selectedDifficulty != null
                                       ? Colors.amber
@@ -375,11 +377,12 @@ class _TaskInputModalState extends State<TaskInputModal> {
                           setState(() => _selectedDifficulty = value);
                         },
                       ),
+                    ),
 
-                      const SizedBox(width: 16),
+                    const Spacer(),
 
-                      // Calendar button
-                      IconButton(
+                    // Calendar button
+                    IconButton(
                         onPressed: _showCalendarModal,
                         icon: Icon(
                           _deadline != null

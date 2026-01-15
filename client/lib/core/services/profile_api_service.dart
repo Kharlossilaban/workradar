@@ -90,6 +90,43 @@ class ProfileApiService {
       throw ApiException.fromDioException(e);
     }
   }
+
+  /// Update work hours configuration
+  Future<void> updateWorkHours(Map<String, dynamic> workDays) async {
+    try {
+      final response = await _apiClient.put(
+        '/profile/work-hours',
+        data: {'work_days': workDays},
+      );
+
+      if (response.statusCode != 200) {
+        throw ApiException(
+          message: response.data['error'] ?? 'Failed to update work hours',
+          statusCode: response.statusCode,
+        );
+      }
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
+
+  /// Get work hours configuration
+  Future<Map<String, dynamic>> getWorkHours() async {
+    try {
+      final response = await _apiClient.get('/profile/work-hours');
+
+      if (response.statusCode == 200) {
+        return response.data['work_days'] as Map<String, dynamic>? ?? {};
+      }
+
+      throw ApiException(
+        message: response.data['error'] ?? 'Failed to get work hours',
+        statusCode: response.statusCode,
+      );
+    } on DioException catch (e) {
+      throw ApiException.fromDioException(e);
+    }
+  }
 }
 
 /// Profile Response with stats

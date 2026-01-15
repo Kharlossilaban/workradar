@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/services/profile_api_service.dart';
 import '../providers/profile_provider.dart';
 
 class WorkDaysConfigSheet extends StatefulWidget {
@@ -124,23 +125,56 @@ class _WorkDaysConfigSheetState extends State<WorkDaysConfigSheet> {
     );
   }
 
-  void _performSave(List<int> selectedDays) {
-    // Apply to provider
+  Future<void> _performSave(List<int> selectedDays) async {
+    // Apply to provider (local state)
     widget.provider.setWorkHoursForAllDays(
       globalStartTime!,
       globalEndTime!,
       selectedDays,
     );
 
+    // Save to backend
+    try {
+      // Format work days data for API
+      final workDaysData = <String, dynamic>{};
+      for (int i = 0; i < 7; i++) {
+        workDaysData[i.toString()] = {
+          'is_work_day': selectedDays.contains(i),
+          'start': selectedDays.contains(i)
+              ? '${globalStartTime!.hour.toString().padLeft(2, '0')}:${globalStartTime!.minute.toString().padLeft(2, '0')}'
+              : null,
+          'end': selectedDays.contains(i)
+              ? '${globalEndTime!.hour.toString().padLeft(2, '0')}:${globalEndTime!.minute.toString().padLeft(2, '0')}'
+              : null,
+        };
+      }
+
+      await ProfileApiService().updateWorkHours(workDaysData);
+    } catch (e) {
+      // Show error but don't block UI
+      debugPrint('Failed to save work hours to backend: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Offline: Jadwal tersimpan lokal saja'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
+
+    if (!mounted) return;
     Navigator.pop(context);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Jadwal kerja berhasil disimpan! (${selectedDays.length} hari)',
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Jadwal kerja berhasil disimpan! (${selectedDays.length} hari)',
+          ),
         ),
-      ),
-    );
+      );
+    }
 
     // Call callback if provided (for first time setup redirect)
     if (widget.onSaveComplete != null) {
