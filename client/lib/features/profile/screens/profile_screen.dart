@@ -18,6 +18,7 @@ import '../../messaging/providers/messaging_provider.dart';
 import 'profile_detail_screen.dart';
 import 'leave_management_screen.dart';
 import '../../messaging/screens/messages_screen.dart';
+import '../../messaging/screens/ai_chat_screen.dart';
 import '../../subscription/screens/subscription_screen.dart';
 import '../../auth/screens/login_screen.dart';
 
@@ -1360,7 +1361,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 12),
           Row(
             children: [
-              // Leave Management Card
+              // Leave Management Card - for ALL users
               Expanded(
                 child: Consumer<LeaveProvider>(
                   builder: (context, leaveProvider, child) {
@@ -1403,6 +1404,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
                 ),
               ),
+
+              // AI Chat Bot - VIP ONLY
+              if (_isVip) ...[
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Consumer<MessagingProvider>(
+                    builder: (context, messaging, child) {
+                      final unreadCount = messaging.unreadCount;
+
+                      return _buildActionCard(
+                        isDarkMode: isDarkMode,
+                        icon: Iconsax.message_text,
+                        title: 'Chat AI Bot',
+                        subtitle: 'Tanya produktivitas Anda',
+                        color: Colors.orange,
+                        badge: unreadCount > 0 ? unreadCount : null,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const AIChatScreen(),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
             ],
           ),
         ],
