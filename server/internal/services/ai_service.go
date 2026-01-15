@@ -260,51 +260,95 @@ func (s *AIService) ClearChatHistory(userID string) error {
 func (s *AIService) getFallbackResponse(userMessage string) string {
 	msg := strings.ToLower(userMessage)
 	
-	// Productivity tips based on common questions
-	if strings.Contains(msg, "produktif") || strings.Contains(msg, "fokus") {
-		return "💡 Tips Produktivitas:\n\n" +
-			"1. Gunakan teknik Pomodoro (25 menit fokus, 5 menit istirahat)\n" +
-			"2. Prioritaskan tugas dengan metode Eisenhower Matrix\n" +
-			"3. Hindari multitasking, fokus pada satu tugas\n" +
-			"4. Atur waktu istirahat yang cukup\n\n" +
-			"💬 *Note: AI sedang dalam mode hemat. Coba lagi dalam beberapa saat untuk respons yang lebih personal.*"
-	}
-	
-	if strings.Contains(msg, "motivasi") || strings.Contains(msg, "semangat") {
-		return "🌟 Motivasi Hari Ini:\n\n" +
-			"\"Kesuksesan adalah hasil dari persiapan, kerja keras, dan belajar dari kegagalan.\"\n\n" +
-			"Ingat: Setiap langkah kecil yang kamu ambil hari ini membawa kamu lebih dekat ke tujuan besar! 💪\n\n" +
-			"💬 *Note: AI sedang dalam mode hemat. Coba lagi dalam beberapa saat untuk motivasi yang lebih personal.*"
-	}
-	
-	if strings.Contains(msg, "tugas") || strings.Contains(msg, "deadline") {
-		return "📋 Tips Manajemen Tugas:\n\n" +
-			"1. Buat daftar tugas di awal hari\n" +
-			"2. Pecah tugas besar menjadi langkah kecil\n" +
-			"3. Set deadline realistis untuk setiap tugas\n" +
-			"4. Review progres di akhir hari\n\n" +
-			"Cek dashboard Workradar untuk melihat statistik tugas kamu! 📊\n\n" +
-			"💬 *Note: AI sedang dalam mode hemat. Coba lagi dalam beberapa saat untuk analisis tugas yang lebih detail.*"
-	}
-	
-	if strings.Contains(msg, "stres") || strings.Contains(msg, "lelah") || strings.Contains(msg, "burnout") {
-		return "🧘 Tips Mengatasi Stres:\n\n" +
-			"1. Ambil napas dalam-dalam (teknik pernapasan 4-7-8)\n" +
-			"2. Lakukan stretching atau jalan ringan\n" +
-			"3. Istirahat sejenak dari layar\n" +
-			"4. Bicarakan dengan teman atau keluarga\n\n" +
-			"Kesehatan mental sama pentingnya dengan produktivitas! 💚\n\n" +
+	// Schedule & Time Management
+	if strings.Contains(msg, "jadwal") || strings.Contains(msg, "waktu") || 
+	   strings.Contains(msg, "mengatur") && strings.Contains(msg, "kerja") {
+		return "📅 Tips Mengatur Jadwal Kerja yang Baik:\n\n" +
+			"1. **Tentukan jam kerja tetap** - Misalnya 09:00-17:00, dan patuhi konsisten\n" +
+			"2. **Gunakan time blocking** - Alokasikan blok waktu spesifik untuk setiap jenis tugas\n" +
+			"3. **Prioritaskan tugas penting di pagi hari** - Saat energi dan fokus masih tinggi\n" +
+			"4. **Jadwalkan istirahat rutin** - 5-10 menit setiap 1-2 jam kerja\n" +
+			"5. **Review jadwal di akhir hari** - Evaluasi apa yang berhasil dan perlu disesuaikan\n\n" +
+			"💡 Gunakan fitur 'Jadwal Kerja' di profil Workradar untuk set jam kerja kamu!\n\n" +
 			"💬 *Note: AI sedang dalam mode hemat. Coba lagi dalam beberapa saat untuk saran yang lebih personal.*"
 	}
 	
-	// Default fallback
+	// Productivity & Focus tips
+	if strings.Contains(msg, "produktif") || strings.Contains(msg, "fokus") || 
+	   strings.Contains(msg, "efektif") || strings.Contains(msg, "efisien") {
+		return "💡 Tips Produktivitas & Fokus Kerja:\n\n" +
+			"1. **Teknik Pomodoro** - 25 menit fokus, 5 menit istirahat\n" +
+			"2. **Eisenhower Matrix** - Prioritaskan: Urgent & Important > Important > Urgent > Neither\n" +
+			"3. **Hindari multitasking** - Fokus satu tugas sampai selesai\n" +
+			"4. **Matikan notifikasi** - Saat deep work, silent mode!\n" +
+			"5. **Morning routine** - Mulai hari dengan ritual yang sama\n\n" +
+			"🎯 Coba gunakan timer di Workradar untuk track waktu kerja kamu!\n\n" +
+			"💬 *Note: AI sedang dalam mode hemat. Coba lagi dalam beberapa saat untuk respons yang lebih personal.*"
+	}
+	
+	// Motivation & Encouragement
+	if strings.Contains(msg, "motivasi") || strings.Contains(msg, "semangat") || 
+	   strings.Contains(msg, "malas") || strings.Contains(msg, "jenuh") {
+		return "🌟 Motivasi & Semangat Kerja:\n\n" +
+			"\"Kesuksesan adalah hasil dari persiapan, kerja keras, dan belajar dari kegagalan.\" - Colin Powell\n\n" +
+			"💪 **Tips bangkit semangat:**\n" +
+			"• Ingat tujuan besar kamu - WHY you started?\n" +
+			"• Rayakan small wins - Setiap progress itu penting!\n" +
+			"• Istirahat sejenak - Recharge is not wasting time\n" +
+			"• Connect dengan teman - Share your struggles\n\n" +
+			"Setiap langkah kecil hari ini membawa kamu lebih dekat ke goal! 🎯\n\n" +
+			"💬 *Note: AI sedang dalam mode hemat. Coba lagi dalam beberapa saat untuk motivasi yang lebih personal.*"
+	}
+	
+	// Task Management
+	if strings.Contains(msg, "tugas") || strings.Contains(msg, "task") || 
+	   strings.Contains(msg, "deadline") || strings.Contains(msg, "pekerjaan") {
+		return "📋 Tips Manajemen Tugas yang Efektif:\n\n" +
+			"1. **Brain dump** - Tulis semua tugas di kepala ke list\n" +
+			"2. **Break down** - Pecah tugas besar jadi subtask kecil\n" +
+			"3. **Set realistic deadline** - Jangan terlalu ambitious\n" +
+			"4. **Daily top 3** - Pilih 3 tugas prioritas hari ini\n" +
+			"5. **Evening review** - Check apa yang done & plan besok\n\n" +
+			"📊 Cek dashboard Workradar untuk statistik tugas kamu!\n\n" +
+			"💬 *Note: AI sedang dalam mode hemat. Coba lagi dalam beberapa saat untuk analisis tugas yang lebih detail.*"
+	}
+	
+	// Stress & Mental Health
+	if strings.Contains(msg, "stres") || strings.Contains(msg, "lelah") || 
+	   strings.Contains(msg, "burnout") || strings.Contains(msg, "cape") || strings.Contains(msg, "capek") {
+		return "🧘 Tips Mengatasi Stres & Burnout:\n\n" +
+			"1. **Teknik pernapasan 4-7-8** - Tarik napas 4 detik, tahan 7 detik, hembuskan 8 detik\n" +
+			"2. **Physical movement** - Stretching, jalan kaki, atau olahraga ringan\n" +
+			"3. **Digital detox** - 15-30 menit break dari semua layar\n" +
+			"4. **Talk to someone** - Sharing helps more than you think\n" +
+			"5. **Sleep enough** - 7-8 jam, non-negotiable!\n\n" +
+			"💚 Kesehatan mental sama pentingnya dengan produktivitas. Take care of yourself!\n\n" +
+			"� *Note: AI sedang dalam mode hemat. Coba lagi dalam beberapa saat untuk saran yang lebih personal.*"
+	}
+	
+	// Work-life balance
+	if strings.Contains(msg, "balance") || strings.Contains(msg, "keseimbangan") || 
+	   (strings.Contains(msg, "kerja") && strings.Contains(msg, "hidup")) {
+		return "⚖️ Tips Work-Life Balance:\n\n" +
+			"1. **Set boundaries** - Jam kerja selesai = stop working\n" +
+			"2. **Quality time** - Dedikasikan waktu penuh untuk keluarga/hobi\n" +
+			"3. **Say no** - Tidak semua request harus diiyakan\n" +
+			"4. **Weekly reflection** - Evaluate work-life balance tiap minggu\n" +
+			"5. **Self-care ritual** - Minimal 30 menit untuk diri sendiri tiap hari\n\n" +
+			"🌿 Remember: You are not your job. You are a human being with a life!\n\n" +
+			"💬 *Note: AI sedang dalam mode hemat. Coba lagi dalam beberapa saat untuk saran yang lebih personal.*"
+	}
+	
+	// Default fallback with more helpful guidance
 	return "👋 Halo! Saya asisten produktivitas Workradar.\n\n" +
 		"Maaf, saat ini saya sedang dalam mode hemat karena banyaknya permintaan. " +
-		"Tapi tetap semangat ya! 💪\n\n" +
-		"Beberapa hal yang bisa kamu lakukan:\n" +
-		"• Cek dashboard untuk melihat statistik tugas\n" +
-		"• Atur jadwal kerja kamu\n" +
-		"• Review tugas yang perlu diselesaikan\n\n" +
-		"Coba chat lagi dalam 1-2 menit untuk mendapat respons AI yang lebih detail! 🤖\n\n" +
-		"💬 *Tips: Untuk demo video, gunakan pertanyaan seperti 'berikan tips produktif' atau 'bagaimana cara fokus kerja'*"
+		"Tapi saya tetap bisa bantu! 💪\n\n" +
+		"🎯 **Coba tanya saya tentang:**\n" +
+		"• \"bagaimana mengatur jadwal kerja?\"\n" +
+		"• \"tips produktif dan fokus\"\n" +
+		"• \"cara manajemen tugas yang baik\"\n" +
+		"• \"motivasi untuk semangat kerja\"\n" +
+		"• \"cara mengatasi stres\"\n\n" +
+		"Atau tunggu 1-2 menit untuk mendapat respons AI yang lebih detail! 🤖\n\n" +
+		"� *Sementara itu, cek dashboard Workradar untuk melihat statistik tugas kamu.*"
 }
