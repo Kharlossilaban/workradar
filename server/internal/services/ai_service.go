@@ -28,7 +28,7 @@ func NewAIService(chatRepo *repository.ChatRepository, taskRepo *repository.Task
 		taskRepo: taskRepo,
 		userRepo: userRepo,
 		apiKey:   apiKey,
-		model:    "gemini-1.5-flash-latest",
+		model:    "gemini-1.5-flash", // Fixed: removed -latest suffix
 		ctx:      context.Background(),
 	}
 }
