@@ -34,13 +34,18 @@ func NewAIService(chatRepo *repository.ChatRepository, taskRepo *repository.Task
 }
 
 func (s *AIService) GenerateResponse(userID, userMessage string) (string, error) {
+	log.Printf("🤖 AI Chat: Starting response generation for user %s", userID)
+
 	if s.apiKey == "" {
+		log.Println("⚠️ AI Chat: API key is empty!")
 		return "Maaf, AI assistant belum dikonfigurasi. Silakan hubungi admin.", nil
 	}
 
+	log.Printf("🤖 AI Chat: Creating Gemini client with model %s", s.model)
 	client, err := genai.NewClient(s.ctx, option.WithAPIKey(s.apiKey))
 	if err != nil {
-		return "", err
+		log.Printf("❌ AI Chat: Failed to create Gemini client: %v", err)
+		return "", fmt.Errorf("gagal menghubungi AI: %v", err)
 	}
 	defer client.Close()
 
@@ -48,17 +53,20 @@ func (s *AIService) GenerateResponse(userID, userMessage string) (string, error)
 	model.SetTemperature(0.7)
 
 	// 1. Build context from user's data
+	log.Printf("🤖 AI Chat: Building system prompt for user %s", userID)
 	systemPrompt, err := s.buildSystemPrompt(userID)
 	if err != nil {
-		log.Printf("Error building system prompt: %v", err)
+		log.Printf("⚠️ AI Chat: Error building system prompt: %v", err)
 		systemPrompt = "Anda adalah asisten produktivitas Workradar."
 	}
 
 	// 2. Load recent chat history from DB
+	log.Println("🤖 AI Chat: Loading chat history from DB")
 	history, err := s.chatRepo.FindByUserID(userID, 10) // Last 10 messages
 	if err != nil {
-		log.Printf("Error loading chat history: %v", err)
+		log.Printf("⚠️ AI Chat: Error loading chat history: %v", err)
 	}
+	log.Printf("🤖 AI Chat: Loaded %d messages from history", len(history))
 
 	// 3. Initialize chat session with history
 	cs := model.StartChat()
@@ -80,12 +88,15 @@ func (s *AIService) GenerateResponse(userID, userMessage string) (string, error)
 	cs.History = genaiHistory
 
 	// 4. Send message to AI
+	log.Printf("🤖 AI Chat: Sending message to Gemini: %s", userMessage)
 	resp, err := cs.SendMessage(s.ctx, genai.Text(userMessage))
 	if err != nil {
-		return "", err
+		log.Printf("❌ AI Chat: Gemini API error: %v", err)
+		return "", fmt.Errorf("AI sedang sibuk. Coba lagi nanti. (%v)", err)
 	}
 
 	if len(resp.Candidates) == 0 || resp.Candidates[0].Content == nil {
+		log.Println("⚠️ AI Chat: Empty response from Gemini")
 		return "Maaf, saya tidak bisa memberikan jawaban saat ini.", nil
 	}
 
@@ -95,8 +106,10 @@ func (s *AIService) GenerateResponse(userID, userMessage string) (string, error)
 			aiResponse += string(text)
 		}
 	}
+	log.Printf("✅ AI Chat: Got response from Gemini (%d chars)", len(aiResponse))
 
 	// 5. Save conversation to history
+	log.Println("🤖 AI Chat: Saving conversation to DB")
 	s.chatRepo.Create(&models.ChatMessage{
 		UserID:  userID,
 		Role:    models.ChatRoleUser,
@@ -109,6 +122,7 @@ func (s *AIService) GenerateResponse(userID, userMessage string) (string, error)
 		Content: aiResponse,
 	})
 
+	log.Println("✅ AI Chat: Response generation completed successfully")
 	return aiResponse, nil
 }
 
