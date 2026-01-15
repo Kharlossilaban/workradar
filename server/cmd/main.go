@@ -294,8 +294,8 @@ func main() {
 	leaves.Put("/:id", leaveHandler.UpdateLeave)
 	leaves.Delete("/:id", leaveHandler.DeleteLeave)
 
-	// Protected routes - AI Chatbot
-	aiChat := api.Group("/ai", middleware.AuthMiddleware())
+	// Protected routes - AI Chatbot (VIP ONLY)
+	aiChat := api.Group("/ai", middleware.AuthMiddleware(), middleware.VIPMiddleware())
 	aiChat.Post("/chat", chatHandler.Chat)
 	aiChat.Get("/history", chatHandler.GetHistory)
 	aiChat.Delete("/history", chatHandler.ClearHistory)
