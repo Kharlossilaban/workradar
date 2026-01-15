@@ -10,13 +10,15 @@
 ### 2. **Fallback Responses**
 Server akan otomatis memberikan respons bermanfaat saat quota habis:
 
-| Pertanyaan | Respons Fallback |
-|------------|------------------|
-| "tips produktif", "fokus" | Tips Produktivitas (Pomodoro, Eisenhower Matrix) |
-| "motivasi", "semangat" | Quote motivasi + penyemangat |
-| "tugas", "deadline" | Tips manajemen tugas |
-| "stres", "lelah", "burnout" | Tips mengatasi stres |
-| Lainnya | Panduan umum + tips untuk demo |
+| Kata Kunci | Respons Fallback | Contoh Pertanyaan |
+|------------|------------------|-------------------|
+| "jadwal", "waktu", "mengatur kerja" | 📅 Tips Mengatur Jadwal Kerja | "bagaimana mengatur jadwal kerja yang baik?" |
+| "produktif", "fokus", "efektif" | 💡 Tips Produktivitas & Fokus | "tips produktif dan fokus kerja" |
+| "motivasi", "semangat", "malas", "jenuh" | 🌟 Motivasi & Semangat Kerja | "motivasi untuk semangat bekerja" |
+| "tugas", "task", "deadline", "pekerjaan" | 📋 Tips Manajemen Tugas | "cara manajemen tugas yang baik" |
+| "stres", "lelah", "burnout", "cape" | 🧘 Tips Mengatasi Stres | "cara mengatasi stres kerja" |
+| "balance", "keseimbangan", "kerja-hidup" | ⚖️ Tips Work-Life Balance | "tips work-life balance" |
+| Lainnya | 👋 Panduan umum + contoh pertanyaan | - |
 
 ## 🎬 Cara Testing untuk Video Demo
 
@@ -57,9 +59,11 @@ Jika muncul error rate limit, ini **NORMAL** dan sudah di-handle:
 ### **2. Pertanyaan Terbaik untuk Demo**
 ```
 ✅ "Halo, kamu bisa bantu apa?"
+✅ "Bagaimana mengatur jadwal kerja yang baik?"
 ✅ "Berikan tips produktif untuk fokus kerja"
-✅ "Bagaimana cara manajemen tugas yang baik?"
+✅ "Cara manajemen tugas yang efektif"
 ✅ "Tips motivasi untuk tetap semangat bekerja"
+✅ "Bagaimana cara mengatasi stres kerja?"
 ```
 
 ### **3. Highlight Features**
