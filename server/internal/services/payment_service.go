@@ -114,14 +114,28 @@ func (s *PaymentService) CreateSnapToken(userID string, planType models.PlanType
 	// 5. Request Snap Token
 	log.Printf("📤 Creating Midtrans transaction - OrderID: %s, Amount: %.0f, User: %s (%s)", orderID, amount, user.Username, user.Email)
 	snapResp, err := s.snapClient.CreateTransaction(req)
+
+	// Debug logging
+	log.Printf("🔍 DEBUG - err == nil: %v, err value: %v, err type: %T", err == nil, err, err)
+	if snapResp != nil {
+		log.Printf("🔍 DEBUG - Response Token: %s, RedirectURL: %s", snapResp.Token, snapResp.RedirectURL)
+	} else {
+		log.Printf("🔍 DEBUG - Response is nil")
+	}
+
 	if err != nil {
-		log.Printf("❌ Midtrans CreateTransaction FAILED - OrderID: %s, Error: %v", orderID, err)
+		log.Printf("❌ Midtrans CreateTransaction FAILED - OrderID: %s, Error: %v, Error Type: %T", orderID, err, err)
 		return "", "", "", fmt.Errorf("payment gateway error: %v", err)
+	}
+
+	if snapResp == nil {
+		log.Printf("❌ Midtrans returned nil response - OrderID: %s", orderID)
+		return "", "", "", errors.New("payment gateway returned nil response")
 	}
 
 	if snapResp.Token == "" {
 		log.Printf("❌ Midtrans returned empty token - OrderID: %s", orderID)
-		return "", "", "", errors.New("payment gateway returned empty response")
+		return "", "", "", errors.New("payment gateway returned empty token")
 	}
 
 	log.Printf("✅ Midtrans transaction SUCCESS - OrderID: %s, Token: %s, RedirectURL: %s", orderID, snapResp.Token, snapResp.RedirectURL)
