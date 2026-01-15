@@ -28,7 +28,7 @@ func NewAIService(chatRepo *repository.ChatRepository, taskRepo *repository.Task
 		taskRepo: taskRepo,
 		userRepo: userRepo,
 		apiKey:   apiKey,
-		model:    "gemini-2.0-flash", // Use latest stable model via REST API
+		model:    "gemini-1.5-flash-latest", // Use v1beta with separate quota pool
 	}
 }
 
@@ -139,8 +139,8 @@ func (s *AIService) GenerateResponse(userID, userMessage string) (string, error)
 		return "", fmt.Errorf("gagal memproses request: %v", err)
 	}
 
-	// 5. Call Gemini REST API (v1 endpoint)
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1/models/%s:generateContent?key=%s", s.model, s.apiKey)
+	// 5. Call Gemini REST API (v1beta endpoint with gemini-1.5-flash-latest)
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", s.model, s.apiKey)
 	log.Printf("🤖 AI Chat: Calling Gemini API with model %s", s.model)
 
 	client := &http.Client{Timeout: 30 * time.Second}
