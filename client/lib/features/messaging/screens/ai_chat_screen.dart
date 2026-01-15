@@ -101,13 +101,33 @@ class _AIChatScreenState extends State<AIChatScreen> {
 
       _scrollToBottom();
     } on ApiException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal mengirim pesan: ${e.message}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+      // Handle rate limit or quota errors gracefully
+      if (e.message.contains('quota') || e.message.contains('rate limit') || e.message.contains('429')) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text(
+                '⏳ AI sedang banyak permintaan. Tunggu 1-2 menit atau coba pertanyaan lain untuk respons fallback.',
+              ),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 5),
+              action: SnackBarAction(
+                label: 'OK',
+                textColor: Colors.white,
+                onPressed: () {},
+              ),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Gagal mengirim pesan: ${e.message}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
       setState(() => _isSending = false);
     } catch (e) {

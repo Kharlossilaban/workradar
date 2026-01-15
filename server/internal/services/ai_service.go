@@ -166,6 +166,13 @@ func (s *AIService) GenerateResponse(userID, userMessage string) (string, error)
 	// Check for API error
 	if geminiResp.Error != nil {
 		log.Printf("❌ AI Chat: Gemini API error: %s (code: %d)", geminiResp.Error.Message, geminiResp.Error.Code)
+		
+		// Handle rate limit error with friendly message
+		if geminiResp.Error.Code == 429 || strings.Contains(strings.ToLower(geminiResp.Error.Message), "quota") || strings.Contains(strings.ToLower(geminiResp.Error.Message), "rate limit") {
+			log.Println("⚠️ AI Chat: Rate limit exceeded, returning fallback response")
+			return s.getFallbackResponse(userMessage), nil
+		}
+		
 		return "", fmt.Errorf("AI error: %s", geminiResp.Error.Message)
 	}
 
@@ -247,4 +254,57 @@ func (s *AIService) GetChatHistory(userID string) ([]models.ChatMessage, error) 
 
 func (s *AIService) ClearChatHistory(userID string) error {
 	return s.chatRepo.DeleteByUserID(userID)
+}
+
+// getFallbackResponse returns a helpful response when API quota is exceeded
+func (s *AIService) getFallbackResponse(userMessage string) string {
+	msg := strings.ToLower(userMessage)
+	
+	// Productivity tips based on common questions
+	if strings.Contains(msg, "produktif") || strings.Contains(msg, "fokus") {
+		return "💡 Tips Produktivitas:\n\n" +
+			"1. Gunakan teknik Pomodoro (25 menit fokus, 5 menit istirahat)\n" +
+			"2. Prioritaskan tugas dengan metode Eisenhower Matrix\n" +
+			"3. Hindari multitasking, fokus pada satu tugas\n" +
+			"4. Atur waktu istirahat yang cukup\n\n" +
+			"💬 *Note: AI sedang dalam mode hemat. Coba lagi dalam beberapa saat untuk respons yang lebih personal.*"
+	}
+	
+	if strings.Contains(msg, "motivasi") || strings.Contains(msg, "semangat") {
+		return "🌟 Motivasi Hari Ini:\n\n" +
+			"\"Kesuksesan adalah hasil dari persiapan, kerja keras, dan belajar dari kegagalan.\"\n\n" +
+			"Ingat: Setiap langkah kecil yang kamu ambil hari ini membawa kamu lebih dekat ke tujuan besar! 💪\n\n" +
+			"💬 *Note: AI sedang dalam mode hemat. Coba lagi dalam beberapa saat untuk motivasi yang lebih personal.*"
+	}
+	
+	if strings.Contains(msg, "tugas") || strings.Contains(msg, "deadline") {
+		return "📋 Tips Manajemen Tugas:\n\n" +
+			"1. Buat daftar tugas di awal hari\n" +
+			"2. Pecah tugas besar menjadi langkah kecil\n" +
+			"3. Set deadline realistis untuk setiap tugas\n" +
+			"4. Review progres di akhir hari\n\n" +
+			"Cek dashboard Workradar untuk melihat statistik tugas kamu! 📊\n\n" +
+			"💬 *Note: AI sedang dalam mode hemat. Coba lagi dalam beberapa saat untuk analisis tugas yang lebih detail.*"
+	}
+	
+	if strings.Contains(msg, "stres") || strings.Contains(msg, "lelah") || strings.Contains(msg, "burnout") {
+		return "🧘 Tips Mengatasi Stres:\n\n" +
+			"1. Ambil napas dalam-dalam (teknik pernapasan 4-7-8)\n" +
+			"2. Lakukan stretching atau jalan ringan\n" +
+			"3. Istirahat sejenak dari layar\n" +
+			"4. Bicarakan dengan teman atau keluarga\n\n" +
+			"Kesehatan mental sama pentingnya dengan produktivitas! 💚\n\n" +
+			"💬 *Note: AI sedang dalam mode hemat. Coba lagi dalam beberapa saat untuk saran yang lebih personal.*"
+	}
+	
+	// Default fallback
+	return "👋 Halo! Saya asisten produktivitas Workradar.\n\n" +
+		"Maaf, saat ini saya sedang dalam mode hemat karena banyaknya permintaan. " +
+		"Tapi tetap semangat ya! 💪\n\n" +
+		"Beberapa hal yang bisa kamu lakukan:\n" +
+		"• Cek dashboard untuk melihat statistik tugas\n" +
+		"• Atur jadwal kerja kamu\n" +
+		"• Review tugas yang perlu diselesaikan\n\n" +
+		"Coba chat lagi dalam 1-2 menit untuk mendapat respons AI yang lebih detail! 🤖\n\n" +
+		"💬 *Tips: Untuk demo video, gunakan pertanyaan seperti 'berikan tips produktif' atau 'bagaimana cara fokus kerja'*"
 }
