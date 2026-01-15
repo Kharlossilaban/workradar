@@ -16,7 +16,6 @@ class CitySelectionSheet extends StatelessWidget {
     {'name': 'Jakarta,ID', 'display': 'Jakarta', 'province': 'DKI Jakarta'},
     {'name': 'Surabaya,ID', 'display': 'Surabaya', 'province': 'Jawa Timur'},
     {'name': 'Bandung,ID', 'display': 'Bandung', 'province': 'Jawa Barat'},
-    {'name': 'Batam,ID', 'display': 'Batam', 'province': 'Kepulauan Riau'},
     {'name': 'Medan,ID', 'display': 'Medan', 'province': 'Sumatera Utara'},
     {'name': 'Semarang,ID', 'display': 'Semarang', 'province': 'Jawa Tengah'},
     {'name': 'Makassar,ID', 'display': 'Makassar', 'province': 'Sulawesi Selatan'},
@@ -24,6 +23,8 @@ class CitySelectionSheet extends StatelessWidget {
     {'name': 'Denpasar,ID', 'display': 'Denpasar', 'province': 'Bali'},
     {'name': 'Yogyakarta,ID', 'display': 'Yogyakarta', 'province': 'DI Yogyakarta'},
     {'name': 'Malang,ID', 'display': 'Malang', 'province': 'Jawa Timur'},
+    {'name': 'Tangerang,ID', 'display': 'Tangerang', 'province': 'Banten'},
+    {'name': 'Bogor,ID', 'display': 'Bogor', 'province': 'Jawa Barat'},
   ];
 
   @override
