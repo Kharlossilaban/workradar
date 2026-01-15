@@ -93,6 +93,18 @@ func (s *AIService) GenerateResponse(userID, userMessage string) (string, error)
 	// 3. Build request contents
 	var contents []GeminiContent
 
+	// Add system context as first user-model exchange (only if no history)
+	if len(history) == 0 {
+		contents = append(contents, GeminiContent{
+			Role:  "user",
+			Parts: []GeminiPart{{Text: "Kamu adalah siapa? Apa yang bisa kamu bantu?"}},
+		})
+		contents = append(contents, GeminiContent{
+			Role:  "model",
+			Parts: []GeminiPart{{Text: systemPrompt}},
+		})
+	}
+
 	// Add chat history
 	for _, msg := range history {
 		role := string(msg.Role)
@@ -113,12 +125,9 @@ func (s *AIService) GenerateResponse(userID, userMessage string) (string, error)
 		Parts: []GeminiPart{{Text: userMessage}},
 	})
 
-	// 4. Create request
+	// 4. Create request (without systemInstruction)
 	reqBody := GeminiRequest{
 		Contents: contents,
-		SystemInstruction: &GeminiContent{
-			Parts: []GeminiPart{{Text: systemPrompt}},
-		},
 		GenerationConfig: &GeminiGenConfig{
 			Temperature: 0.7,
 		},
