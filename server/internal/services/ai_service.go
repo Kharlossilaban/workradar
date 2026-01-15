@@ -28,7 +28,7 @@ func NewAIService(chatRepo *repository.ChatRepository, taskRepo *repository.Task
 		taskRepo: taskRepo,
 		userRepo: userRepo,
 		apiKey:   apiKey,
-		model:    "gemini-2.0-flash", // Use v1beta with latest stable model
+		model:    "gemini-2.0-flash-lite", // Use lite model with separate free quota pool
 	}
 }
 
