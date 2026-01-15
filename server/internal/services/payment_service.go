@@ -4,7 +4,6 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"log"
 
 	"github.com/google/uuid"
@@ -115,29 +114,20 @@ func (s *PaymentService) CreateSnapToken(userID string, planType models.PlanType
 	log.Printf("📤 Creating Midtrans transaction - OrderID: %s, Amount: %.0f, User: %s (%s)", orderID, amount, user.Username, user.Email)
 	snapResp, err := s.snapClient.CreateTransaction(req)
 
-	// Debug logging
-	log.Printf("🔍 DEBUG - err == nil: %v, err value: %v, err type: %T", err == nil, err, err)
-	if snapResp != nil {
-		log.Printf("🔍 DEBUG - Response Token: %s, RedirectURL: %s", snapResp.Token, snapResp.RedirectURL)
-	} else {
-		log.Printf("🔍 DEBUG - Response is nil")
-	}
-
-	if err != nil {
-		log.Printf("❌ Midtrans CreateTransaction FAILED - OrderID: %s, Error: %v, Error Type: %T", orderID, err, err)
-		return "", "", "", fmt.Errorf("payment gateway error: %v", err)
-	}
-
+	// Check response validity FIRST (fix for Go interface nil gotcha)
+	// Midtrans SDK sometimes returns non-nil error interface with nil value
+	// If response is valid with token, treat as success regardless of error
 	if snapResp == nil {
-		log.Printf("❌ Midtrans returned nil response - OrderID: %s", orderID)
+		log.Printf("❌ Midtrans returned nil response - OrderID: %s, Error: %v", orderID, err)
 		return "", "", "", errors.New("payment gateway returned nil response")
 	}
 
 	if snapResp.Token == "" {
-		log.Printf("❌ Midtrans returned empty token - OrderID: %s", orderID)
+		log.Printf("❌ Midtrans returned empty token - OrderID: %s, Error: %v", orderID, err)
 		return "", "", "", errors.New("payment gateway returned empty token")
 	}
 
+	// If we have valid response with token, transaction is successful
 	log.Printf("✅ Midtrans transaction SUCCESS - OrderID: %s, Token: %s, RedirectURL: %s", orderID, snapResp.Token, snapResp.RedirectURL)
 
 	// 6. Save Transaction to DB
