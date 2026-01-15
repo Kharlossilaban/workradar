@@ -13,7 +13,7 @@ class VipWeatherScreen extends StatefulWidget {
 }
 
 class _VipWeatherScreenState extends State<VipWeatherScreen> {
-  String _selectedCity = 'Batam';
+  String _selectedCity = 'Jakarta,ID'; // Use city with country code for better accuracy
   final String _username = 'John Doe';
   final WeatherApiService _weatherService = WeatherApiService();
 
@@ -84,6 +84,11 @@ class _VipWeatherScreenState extends State<VipWeatherScreen> {
     if (hour < 15) return 'Selamat Siang';
     if (hour < 18) return 'Selamat Sore';
     return 'Selamat Malam';
+  }
+
+  String _getDisplayCityName() {
+    // Remove country code for display (e.g., "Jakarta,ID" -> "Jakarta")
+    return _selectedCity.split(',').first;
   }
 
   IconData _getWeatherIcon(String condition) {
@@ -320,7 +325,7 @@ class _VipWeatherScreenState extends State<VipWeatherScreen> {
             Icon(Iconsax.location, color: textSecondaryColor, size: 20),
             const SizedBox(width: 8),
             Text(
-              _selectedCity,
+              _getDisplayCityName(),
               style: TextStyle(
                 color: textColor,
                 fontSize: 28,

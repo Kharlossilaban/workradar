@@ -13,17 +13,17 @@ class CitySelectionSheet extends StatelessWidget {
   });
 
   static const List<Map<String, dynamic>> cities = [
-    {'name': 'Jakarta', 'province': 'DKI Jakarta'},
-    {'name': 'Surabaya', 'province': 'Jawa Timur'},
-    {'name': 'Bandung', 'province': 'Jawa Barat'},
-    {'name': 'Batam', 'province': 'Kepulauan Riau'},
-    {'name': 'Medan', 'province': 'Sumatera Utara'},
-    {'name': 'Semarang', 'province': 'Jawa Tengah'},
-    {'name': 'Makassar', 'province': 'Sulawesi Selatan'},
-    {'name': 'Palembang', 'province': 'Sumatera Selatan'},
-    {'name': 'Denpasar', 'province': 'Bali'},
-    {'name': 'Yogyakarta', 'province': 'DI Yogyakarta'},
-    {'name': 'Malang', 'province': 'Jawa Timur'},
+    {'name': 'Jakarta,ID', 'display': 'Jakarta', 'province': 'DKI Jakarta'},
+    {'name': 'Surabaya,ID', 'display': 'Surabaya', 'province': 'Jawa Timur'},
+    {'name': 'Bandung,ID', 'display': 'Bandung', 'province': 'Jawa Barat'},
+    {'name': 'Batam,ID', 'display': 'Batam', 'province': 'Kepulauan Riau'},
+    {'name': 'Medan,ID', 'display': 'Medan', 'province': 'Sumatera Utara'},
+    {'name': 'Semarang,ID', 'display': 'Semarang', 'province': 'Jawa Tengah'},
+    {'name': 'Makassar,ID', 'display': 'Makassar', 'province': 'Sulawesi Selatan'},
+    {'name': 'Palembang,ID', 'display': 'Palembang', 'province': 'Sumatera Selatan'},
+    {'name': 'Denpasar,ID', 'display': 'Denpasar', 'province': 'Bali'},
+    {'name': 'Yogyakarta,ID', 'display': 'Yogyakarta', 'province': 'DI Yogyakarta'},
+    {'name': 'Malang,ID', 'display': 'Malang', 'province': 'Jawa Timur'},
   ];
 
   @override
@@ -142,7 +142,7 @@ class CitySelectionSheet extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                city['name'],
+                                city['display'] ?? city['name'],
                                 style: TextStyle(
                                   color: isSelected
                                       ? AppTheme.primaryColor
