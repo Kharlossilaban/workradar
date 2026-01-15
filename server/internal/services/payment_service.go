@@ -4,7 +4,6 @@ import (
 	"crypto/sha512"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"log"
 
 	"github.com/google/uuid"
@@ -34,12 +33,12 @@ func NewPaymentService(
 	// Initialize Midtrans Snap Client
 	var s snap.Client
 	var c coreapi.Client
-	
+
 	// Validate server key
 	if config.AppConfig.MidtransServerKey == "" {
 		log.Fatal("MIDTRANS_SERVER_KEY is not set in environment variables")
 	}
-	
+
 	// Set environment based on production flag
 	env := midtrans.Sandbox
 	if config.AppConfig.MidtransIsProduction {
@@ -120,20 +119,24 @@ func (s *PaymentService) CreateSnapToken(userID string, planType models.PlanType
 	}
 
 	// 5. Request Snap Token
-	log.Printf("Creating Midtrans transaction for user %s, order %s, amount %.0f", userID, orderID, amount)
+	log.Printf("📤 Creating Midtrans transaction - OrderID: %s, Amount: %.0f, User: %s (%s)", orderID, amount, user.Username, user.Email)
 	snapResp, err := s.snapClient.CreateTransaction(req)
-	if err != nil {
-		log.Printf("Midtrans CreateTransaction Error: %v", err)
-		log.Printf("Request details - OrderID: %s, Amount: %.0f, User: %s (%s)", orderID, amount, user.Username, user.Email)
-		return "", "", "", fmt.Errorf("payment gateway error: %v", err)
+
+	// Check response validity FIRST (fix for Go interface nil gotcha)
+	// Midtrans SDK sometimes returns non-nil error interface with nil value
+	// If response is valid with token, treat as success regardless of error
+	if snapResp == nil {
+		log.Printf("❌ Midtrans returned nil response - OrderID: %s, Error: %v", orderID, err)
+		return "", "", "", errors.New("payment gateway returned nil response")
 	}
-	
+
 	if snapResp.Token == "" {
-		log.Printf("Midtrans returned empty token for order %s", orderID)
-		return "", "", "", errors.New("payment gateway returned empty response")
+		log.Printf("❌ Midtrans returned empty token - OrderID: %s, Error: %v", orderID, err)
+		return "", "", "", errors.New("payment gateway returned empty token")
 	}
-	
-	log.Printf("Midtrans transaction created successfully. Token: %s, OrderID: %s", snapResp.Token, orderID)
+
+	// If we have valid response with token, transaction is successful
+	log.Printf("✅ Midtrans transaction SUCCESS - OrderID: %s, Token: %s, RedirectURL: %s", orderID, snapResp.Token, snapResp.RedirectURL)
 
 	// 6. Save Transaction to DB
 	trx := &models.Transaction{
@@ -301,10 +304,10 @@ func (s *PaymentService) VerifyNotificationSignature(
 	input := orderID + statusCode + grossAmount + config.AppConfig.MidtransServerKey
 	hash := sha512.Sum512([]byte(input))
 	calculatedSignature := hex.EncodeToString(hash[:])
-	
+
 	isValid := calculatedSignature == signatureKey
 	if !isValid {
-		log.Printf("❌ Invalid signature for order %s. Expected: %s, Got: %s", 
+		log.Printf("❌ Invalid signature for order %s. Expected: %s, Got: %s",
 			orderID, calculatedSignature[:32]+"...", signatureKey[:32]+"...")
 	} else {
 		log.Printf("✅ Valid signature for order %s", orderID)

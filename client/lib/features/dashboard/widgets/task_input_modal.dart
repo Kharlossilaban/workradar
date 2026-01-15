@@ -193,19 +193,15 @@ class _TaskInputModalState extends State<TaskInputModal> {
 
               Divider(height: 1, color: dividerColor),
 
-              // Action row - wrapped in SingleChildScrollView to prevent overflow
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 8,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Category dropdown
-                      PopupMenuButton<String>(
+              // Action row - fixed width to prevent shifting
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(
+                  children: [
+                    // Category dropdown - FIXED WIDTH
+                    SizedBox(
+                      width: 150,
+                      child: PopupMenuButton<String>(
                         offset: const Offset(0, 40),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -224,16 +220,20 @@ class _TaskInputModalState extends State<TaskInputModal> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                _isLoadingCategories
-                                    ? 'Memuat...'
-                                    : _selectedCategory ?? 'Pilih Kategori',
-                                style: TextStyle(
-                                  color: _selectedCategory != null
-                                      ? _getCategoryColor()
-                                      : hintColor,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
+                              Expanded(
+                                child: Text(
+                                  _isLoadingCategories
+                                      ? 'Memuat...'
+                                      : _selectedCategory ?? 'Pilih Kategori',
+                                  style: TextStyle(
+                                    color: _selectedCategory != null
+                                        ? _getCategoryColor()
+                                        : hintColor,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
                                 ),
                               ),
                               const SizedBox(width: 4),
@@ -305,11 +305,14 @@ class _TaskInputModalState extends State<TaskInputModal> {
                           }
                         },
                       ),
+                    ),
 
-                      const SizedBox(width: 8),
+                    const SizedBox(width: 8),
 
-                      // Difficulty dropdown
-                      PopupMenuButton<TaskDifficulty>(
+                    // Difficulty dropdown - FIXED WIDTH
+                    SizedBox(
+                      width: 125,
+                      child: PopupMenuButton<TaskDifficulty>(
                         offset: const Offset(0, 40),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -328,16 +331,22 @@ class _TaskInputModalState extends State<TaskInputModal> {
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                _selectedDifficulty != null
-                                    ? _getDifficultyLabel(_selectedDifficulty!)
-                                    : 'Pilih Beban Kegiatan',
-                                style: TextStyle(
-                                  color: _selectedDifficulty != null
-                                      ? Colors.amber
-                                      : hintColor,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
+                              Expanded(
+                                child: Text(
+                                  _selectedDifficulty != null
+                                      ? _getDifficultyLabel(
+                                          _selectedDifficulty!,
+                                        )
+                                      : 'Pilih Beban',
+                                  style: TextStyle(
+                                    color: _selectedDifficulty != null
+                                        ? Colors.amber
+                                        : hintColor,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
                                 ),
                               ),
                               const SizedBox(width: 4),
@@ -375,40 +384,40 @@ class _TaskInputModalState extends State<TaskInputModal> {
                           setState(() => _selectedDifficulty = value);
                         },
                       ),
+                    ),
 
-                      const SizedBox(width: 16),
+                    const Spacer(),
 
-                      // Calendar button
-                      IconButton(
-                        onPressed: _showCalendarModal,
-                        icon: Icon(
-                          _deadline != null
-                              ? Iconsax.calendar_15
-                              : Iconsax.calendar,
-                          color: _deadline != null
-                              ? AppTheme.primaryColor
-                              : AppTheme.textLight,
+                    // Calendar button
+                    IconButton(
+                      onPressed: _showCalendarModal,
+                      icon: Icon(
+                        _deadline != null
+                            ? Iconsax.calendar_15
+                            : Iconsax.calendar,
+                        color: _deadline != null
+                            ? AppTheme.primaryColor
+                            : AppTheme.textLight,
+                      ),
+                    ),
+
+                    // Send button
+                    IconButton(
+                      onPressed: _createTask,
+                      icon: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Iconsax.send_1,
+                          color: Colors.white,
+                          size: 20,
                         ),
                       ),
-
-                      // Send button
-                      IconButton(
-                        onPressed: _createTask,
-                        icon: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryColor,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: const Icon(
-                            Iconsax.send_1,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ],

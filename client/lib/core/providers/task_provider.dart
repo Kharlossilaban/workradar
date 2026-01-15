@@ -197,6 +197,9 @@ class TaskProvider extends ChangeNotifier {
         repeatType: task.repeatType.name,
         repeatInterval: task.repeatInterval,
         repeatEndDate: task.repeatEndDate,
+        durationMinutes:
+            task.durationMinutes, // ✅ FIX: Send duration to backend
+        difficulty: task.difficulty.name, // ✅ FIX: Send difficulty to backend
       );
 
       final createdTask = _taskModelToTask(createdTaskModel);
@@ -472,12 +475,22 @@ class TaskProvider extends ChangeNotifier {
       repeatEndDate: model.repeatEndDate,
       isCompleted: model.isCompleted,
       completedAt: model.completedAt,
-      difficulty:
-          TaskDifficulty.normal, // Default since backend doesn't have this
-      durationMinutes: null, // Backend doesn't have duration
+      difficulty: _parseDifficulty(model.difficulty), // ✅ FIX: From backend
+      durationMinutes: model.durationMinutes, // ✅ FIX: From backend
       createdAt: model.createdAt,
       updatedAt: model.updatedAt,
     );
+  }
+
+  static TaskDifficulty _parseDifficulty(String? difficulty) {
+    switch (difficulty) {
+      case 'relaxed':
+        return TaskDifficulty.relaxed;
+      case 'focus':
+        return TaskDifficulty.focus;
+      default:
+        return TaskDifficulty.normal;
+    }
   }
 
   static RepeatType _parseRepeatType(String type) {

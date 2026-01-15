@@ -40,8 +40,9 @@ class AppConstants {
   static const String appVersion = '1.0.0';
 
   // Subscription prices (in IDR)
-  static const int monthlyPrice = 15000;
-  static const int yearlyPrice = 100000;
+  // IMPORTANT: Must match backend prices in server/internal/models/subscription.go
+  static const int monthlyPrice = 15000; // Rp 15K
+  static const int yearlyPrice = 150000; // Rp 150K
 
   // Task limits
   static const int vipHealthNotificationThreshold = 15; // tasks per day

@@ -22,8 +22,9 @@ class ApiClient {
           'Accept': 'application/json',
         },
         validateStatus: (status) {
-          // Accept all status codes untuk custom error handling
-          return status != null && status < 500;
+          // Accept ALL status codes untuk proper error handling
+          // This allows us to read error messages from backend even for 500 errors
+          return status != null;
         },
       ),
     );

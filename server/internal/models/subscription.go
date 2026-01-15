@@ -41,6 +41,6 @@ func (s *Subscription) BeforeCreate(tx *gorm.DB) error {
 
 // Subscription prices (in IDR)
 const (
-	PriceMonthly = 49000  // Rp 49K
-	PriceYearly  = 499000 // Rp 499K
+	PriceMonthly = 15000  // Rp 15K
+	PriceYearly  = 150000 // Rp 150K
 )

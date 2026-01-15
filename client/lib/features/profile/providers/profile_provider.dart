@@ -172,6 +172,14 @@ class ProfileProvider with ChangeNotifier {
       _todayTasks = profileResponse.stats.todayTasks;
       _pendingTasks = profileResponse.stats.pendingTasks;
 
+      // Load work hours from backend
+      try {
+        await _loadWorkHours();
+      } catch (e) {
+        // Don't fail entire profile load if work hours fail
+        debugPrint('Failed to load work hours: $e');
+      }
+
       _isLoading = false;
       notifyListeners();
     } on ApiException catch (e) {
@@ -226,6 +234,64 @@ class ProfileProvider with ChangeNotifier {
       notifyListeners();
       rethrow;
     }
+  }
+
+  /// Load work hours from backend
+  Future<void> _loadWorkHours() async {
+    try {
+      final workHoursData = await _apiService.getWorkHours();
+
+      if (workHoursData.isEmpty) return;
+
+      // Parse work hours data from backend
+      for (int i = 0; i < 7; i++) {
+        final dayData = workHoursData[i.toString()];
+        if (dayData != null && dayData is Map<String, dynamic>) {
+          final isWorkDay = dayData['is_work_day'] as bool? ?? false;
+
+          TimeOfDay? start;
+          TimeOfDay? end;
+
+          if (isWorkDay) {
+            final startStr = dayData['start'] as String?;
+            final endStr = dayData['end'] as String?;
+
+            if (startStr != null && endStr != null) {
+              start = _parseTimeOfDay(startStr);
+              end = _parseTimeOfDay(endStr);
+            }
+          }
+
+          _workDays[i] = DailyWorkHours(
+            start: start,
+            end: end,
+            isWorkDay: isWorkDay,
+          );
+
+          // Update legacy values
+          if (isWorkDay && start != null && end != null) {
+            _workStart ??= start;
+            _workEnd ??= end;
+          }
+        }
+      }
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading work hours: $e');
+      rethrow;
+    }
+  }
+
+  /// Parse time string (HH:mm) to TimeOfDay
+  TimeOfDay _parseTimeOfDay(String timeStr) {
+    final parts = timeStr.split(':');
+    if (parts.length == 2) {
+      final hour = int.tryParse(parts[0]) ?? 0;
+      final minute = int.tryParse(parts[1]) ?? 0;
+      return TimeOfDay(hour: hour, minute: minute);
+    }
+    return const TimeOfDay(hour: 0, minute: 0);
   }
 
   // ==================== LOCAL METHODS ====================

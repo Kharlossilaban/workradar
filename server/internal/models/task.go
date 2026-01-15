@@ -26,6 +26,7 @@ type Task struct {
 	Deadline        *time.Time `json:"deadline,omitempty"`
 	ReminderMinutes *int       `json:"reminder_minutes,omitempty"`
 	DurationMinutes *int       `json:"duration_minutes,omitempty"`
+	Difficulty      *string    `gorm:"type:varchar(20)" json:"difficulty,omitempty"` // relaxed, normal, focus
 	RepeatType      RepeatType `gorm:"type:enum('none','hourly','daily','weekly','monthly');default:'none'" json:"repeat_type"`
 	RepeatInterval  int        `gorm:"default:1" json:"repeat_interval"`
 	RepeatEndDate   *time.Time `gorm:"type:date" json:"repeat_end_date,omitempty"`

@@ -23,18 +23,19 @@ func (h *ChatHandler) Chat(c *fiber.Ctx) error {
 	}
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request body",
+			"error": "Format request tidak valid",
 		})
 	}
 
 	if req.Message == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Message cannot be empty",
+			"error": "Pesan tidak boleh kosong",
 		})
 	}
 
 	response, err := h.aiService.GenerateResponse(userID, req.Message)
 	if err != nil {
+		// Return proper error message from service
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})
@@ -58,7 +59,7 @@ func (h *ChatHandler) GetHistory(c *fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"history": history,
+		"messages": history, // Changed from "history" to "messages" to match frontend
 	})
 }
 

@@ -61,6 +61,8 @@ class TaskApiService {
     String repeatType = 'none',
     int repeatInterval = 1,
     DateTime? repeatEndDate,
+    int? durationMinutes,
+    String? difficulty,
   }) async {
     try {
       final data = <String, dynamic>{'title': title};
@@ -78,6 +80,9 @@ class TaskApiService {
           data['repeat_end_date'] = repeatEndDate.toUtc().toIso8601String();
         }
       }
+      // ✅ FIX: Add duration and difficulty to API call
+      if (durationMinutes != null) data['duration_minutes'] = durationMinutes;
+      if (difficulty != null) data['difficulty'] = difficulty;
 
       final response = await _apiClient.post('/tasks', data: data);
 
@@ -189,6 +194,8 @@ class TaskModel {
   final bool isCompleted;
   final DateTime? completedAt;
   final CategoryModel? category;
+  final int? durationMinutes; // ✅ FIX: Added
+  final String? difficulty; // ✅ FIX: Added
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -206,6 +213,8 @@ class TaskModel {
     this.isCompleted = false,
     this.completedAt,
     this.category,
+    this.durationMinutes, // ✅ FIX: Added
+    this.difficulty, // ✅ FIX: Added
     required this.createdAt,
     required this.updatedAt,
   });
@@ -234,6 +243,8 @@ class TaskModel {
       category: json['category'] != null
           ? CategoryModel.fromJson(json['category'])
           : null,
+      durationMinutes: json['duration_minutes'], // ✅ FIX: Parse from backend
+      difficulty: json['difficulty'], // ✅ FIX: Parse from backend
       createdAt: DateTime.parse(
         json['created_at'] ?? DateTime.now().toIso8601String(),
       ).toLocal(),
