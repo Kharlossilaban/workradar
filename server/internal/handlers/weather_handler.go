@@ -3,7 +3,7 @@ package handlers
 import (
 	"strconv"
 	"strings"
-	
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/workradar/server/internal/services"
 )
@@ -137,15 +137,13 @@ func (h *WeatherHandler) GetForecast(c *fiber.Ctx) error {
 	})
 }
 
-// GetHourlyForecast returns hourly weather forecast for a city
+// GetHourlyForecast returns hourly weather forecast for a city or coordinates
 // GET /api/weather/hourly?city={city}&hours={hours}
+// GET /api/weather/hourly?lat={lat}&lon={lon}&hours={hours}
 func (h *WeatherHandler) GetHourlyForecast(c *fiber.Ctx) error {
 	city := c.Query("city")
-	if city == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "City parameter is required",
-		})
-	}
+	lat := c.Query("lat")
+	lon := c.Query("lon")
 
 	// Parse hours parameter (default 12, max 48)
 	hours := c.QueryInt("hours", 12)
@@ -154,6 +152,74 @@ func (h *WeatherHandler) GetHourlyForecast(c *fiber.Ctx) error {
 	}
 	if hours > 48 {
 		hours = 48
+	}
+
+	// Check if using coordinates
+	if lat != "" && lon != "" {
+		latitude, err1 := strconv.ParseFloat(lat, 64)
+		longitude, err2 := strconv.ParseFloat(lon, 64)
+
+		if err1 != nil || err2 != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Invalid latitude or longitude format",
+			})
+		}
+
+		forecast, err := h.weatherService.GetHourlyForecastByCoordinates(latitude, longitude, hours)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": err.Error(),
+			})
+		}
+
+		return c.Status(fiber.StatusOK).JSON(fiber.Map{
+			"status":   "success",
+			"forecast": forecast,
+		})
+	}
+
+	// Otherwise use city name
+	if city == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "City parameter or lat/lon coordinates are required",
+		})
+	}
+
+	// Special handling for Batam-style query: "Batam?lat=1.0456&lon=104.0305"
+	if strings.Contains(city, "lat=") && strings.Contains(city, "lon=") {
+		parts := strings.Split(city, "?")
+		if len(parts) == 2 {
+			query := parts[1]
+			params := make(map[string]string)
+			for _, param := range strings.Split(query, "&") {
+				kv := strings.Split(param, "=")
+				if len(kv) == 2 {
+					params[kv[0]] = kv[1]
+				}
+			}
+
+			if latStr, ok := params["lat"]; ok {
+				if lonStr, ok := params["lon"]; ok {
+					latitude, _ := strconv.ParseFloat(latStr, 64)
+					longitude, _ := strconv.ParseFloat(lonStr, 64)
+
+					forecast, err := h.weatherService.GetHourlyForecastByCoordinates(latitude, longitude, hours)
+					if err != nil {
+						return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+							"error": err.Error(),
+						})
+					}
+
+					// Override city name
+					forecast.CityName = parts[0]
+
+					return c.Status(fiber.StatusOK).JSON(fiber.Map{
+						"status":   "success",
+						"forecast": forecast,
+					})
+				}
+			}
+		}
 	}
 
 	forecast, err := h.weatherService.GetHourlyForecast(city, hours)
