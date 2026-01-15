@@ -131,7 +131,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       {'icon': Iconsax.task_square, 'text': 'Statistik Lengkap Task'},
       {'icon': Iconsax.trend_up, 'text': 'Analisis Produktivitas'},
       {'icon': Iconsax.notification_bing, 'text': 'Notifikasi Premium'},
-      {'icon': Iconsax.shield_tick, 'text': 'Data Backup Otomatis'},
+      {'icon': Iconsax.message_text, 'text': 'Chat AI Bot'},
     ];
 
     return benefits.map((benefit) {
@@ -286,7 +286,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
               if (_selectedPlan == 'yearly') ...[
                 const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.green.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -328,7 +331,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
   ) {
     final isSelected = _selectedPlan == planId;
     final cardColor = isDarkMode ? AppTheme.darkCard : Colors.white;
-    final textPrimaryColor = isDarkMode ? AppTheme.darkTextPrimary : AppTheme.textPrimary;
+    final textPrimaryColor = isDarkMode
+        ? AppTheme.darkTextPrimary
+        : AppTheme.textPrimary;
 
     return GestureDetector(
       onTap: () => setState(() => _selectedPlan = planId),
@@ -336,7 +341,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.vipGold.withValues(alpha: 0.1) : cardColor,
+          color: isSelected
+              ? AppTheme.vipGold.withValues(alpha: 0.1)
+              : cardColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: isSelected ? AppTheme.vipGold : Colors.grey.shade300,
@@ -379,13 +386,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 color: isSelected ? AppTheme.vipGold : textPrimaryColor,
               ),
             ),
-            Text(
-              period,
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey,
-              ),
-            ),
+            Text(period, style: TextStyle(fontSize: 11, color: Colors.grey)),
             const SizedBox(height: 8),
             Icon(
               isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
@@ -511,7 +512,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 // The WebView handles status automatically
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Status akan diperbarui otomatis setelah pembayaran selesai.'),
+                    content: Text(
+                      'Status akan diperbarui otomatis setelah pembayaran selesai.',
+                    ),
                   ),
                 );
               },
@@ -604,7 +607,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
   }
 
-  Future<void> _handlePaymentResult(PaymentStatus result, Payment payment) async {
+  Future<void> _handlePaymentResult(
+    PaymentStatus result,
+    Payment payment,
+  ) async {
     switch (result) {
       case PaymentStatus.success:
         // Send success messages
@@ -654,7 +660,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             widget.userId,
             'Pembayaran ditolak oleh sistem',
           );
-          
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Pembayaran gagal. Silakan coba lagi.'),
@@ -690,7 +696,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Pembayaran sedang diproses. Mohon tunggu beberapa saat.'),
+              content: Text(
+                'Pembayaran sedang diproses. Mohon tunggu beberapa saat.',
+              ),
               backgroundColor: Colors.blue,
             ),
           );
