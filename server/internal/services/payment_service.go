@@ -46,11 +46,19 @@ func NewPaymentService(
 		env = midtrans.Production
 	}
 	
+	// Debug logging (masked for security)
+	serverKeyPrefix := "unknown"
+	if len(config.AppConfig.MidtransServerKey) > 10 {
+		serverKeyPrefix = config.AppConfig.MidtransServerKey[:10]
+	}
+	log.Printf("🔧 Midtrans Config - Environment: %v, IsProduction: %v, ServerKey prefix: %s..., Key length: %d", 
+		env, config.AppConfig.MidtransIsProduction, serverKeyPrefix, len(config.AppConfig.MidtransServerKey))
+	
 	// Initialize clients with proper environment
 	s.New(config.AppConfig.MidtransServerKey, env)
 	c.New(config.AppConfig.MidtransServerKey, env)
 	
-	log.Printf("Midtrans initialized in %v mode", env)
+	log.Printf("✅ Midtrans initialized in %v mode", env)
 
 	return &PaymentService{
 		transactionRepo:   transactionRepo,
