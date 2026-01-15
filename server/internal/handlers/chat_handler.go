@@ -58,7 +58,7 @@ func (h *ChatHandler) GetHistory(c *fiber.Ctx) error {
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"history": history,
+		"messages": history, // Changed from "history" to "messages" to match frontend
 	})
 }
 
