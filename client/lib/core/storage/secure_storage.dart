@@ -3,8 +3,14 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// Secure Storage wrapper untuk menyimpan data sensitif (encrypted)
 class SecureStorage {
   static const _storage = FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
-    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+    aOptions: AndroidOptions(
+      encryptedSharedPreferences: true,
+      resetOnError: true, // Auto-reset if encryption fails
+    ),
+    iOptions: IOSOptions(
+      accessibility: KeychainAccessibility.first_unlock_this_device,
+      synchronizable: false, // Don't sync across devices
+    ),
   );
 
   // Storage keys
@@ -18,22 +24,56 @@ class SecureStorage {
 
   /// Save access token
   static Future<void> saveAccessToken(String token) async {
-    await _storage.write(key: _keyAccessToken, value: token);
+    try {
+      await _storage.write(key: _keyAccessToken, value: token);
+      print('✅ Access token saved successfully');
+
+      // Verify save was successful
+      final saved = await _storage.read(key: _keyAccessToken);
+      if (saved == null) {
+        print('⚠️ Warning: Token save verification failed!');
+      }
+    } catch (e) {
+      print('❌ Error saving access token: $e');
+      rethrow;
+    }
   }
 
   /// Get access token
   static Future<String?> getAccessToken() async {
-    return await _storage.read(key: _keyAccessToken);
+    try {
+      return await _storage.read(key: _keyAccessToken);
+    } catch (e) {
+      print('❌ Error reading access token: $e');
+      return null;
+    }
   }
 
   /// Save refresh token
   static Future<void> saveRefreshToken(String token) async {
-    await _storage.write(key: _keyRefreshToken, value: token);
+    try {
+      await _storage.write(key: _keyRefreshToken, value: token);
+      print('✅ Refresh token saved successfully');
+
+      // Verify save was successful
+      final saved = await _storage.read(key: _keyRefreshToken);
+      if (saved == null) {
+        print('⚠️ Warning: Refresh token save verification failed!');
+      }
+    } catch (e) {
+      print('❌ Error saving refresh token: $e');
+      rethrow;
+    }
   }
 
   /// Get refresh token
   static Future<String?> getRefreshToken() async {
-    return await _storage.read(key: _keyRefreshToken);
+    try {
+      return await _storage.read(key: _keyRefreshToken);
+    } catch (e) {
+      print('❌ Error reading refresh token: $e');
+      return null;
+    }
   }
 
   /// Save user data
@@ -76,9 +116,25 @@ class SecureStorage {
 
   /// Check if user is logged in (has valid tokens)
   static Future<bool> isLoggedIn() async {
-    final accessToken = await getAccessToken();
-    final refreshToken = await getRefreshToken();
-    return accessToken != null && refreshToken != null;
+    try {
+      final accessToken = await getAccessToken();
+      final refreshToken = await getRefreshToken();
+      final userId = await getUserId();
+
+      // More strict checking: need all 3 values
+      final hasTokens =
+          accessToken != null &&
+          accessToken.isNotEmpty &&
+          refreshToken != null &&
+          refreshToken.isNotEmpty &&
+          userId != null &&
+          userId.isNotEmpty;
+
+      return hasTokens;
+    } catch (e) {
+      print('❌ Error checking login status: $e');
+      return false;
+    }
   }
 
   /// Clear all data (logout)

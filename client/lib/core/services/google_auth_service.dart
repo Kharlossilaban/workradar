@@ -108,6 +108,10 @@ class GoogleAuthService {
     GoogleSignInAccount account,
     String idToken,
   ) async {
+    print('🔐 Starting Google authentication...');
+    print('  - Account: ${account.email}');
+    print('  - Display Name: ${account.displayName}');
+
     // Simulate network delay
     await Future.delayed(const Duration(seconds: 1));
 
@@ -120,19 +124,31 @@ class GoogleAuthService {
     final mockRefreshToken =
         'mock_refresh_token_${DateTime.now().millisecondsSinceEpoch}';
 
+    print('  - Generated mock tokens');
+
     // Save mock auth data
-    await SecureStorage.saveAccessToken(mockToken);
-    await SecureStorage.saveRefreshToken(mockRefreshToken);
-    await SecureStorage.saveUserData(
-      userId: account.id,
-      email: account.email,
-      userType: 'regular',
-    );
+    try {
+      await SecureStorage.saveAccessToken(mockToken);
+      await SecureStorage.saveRefreshToken(mockRefreshToken);
+      await SecureStorage.saveUserData(
+        userId: account.id,
+        email: account.email,
+        userType: 'regular',
+      );
+      print('✅ Google auth tokens saved successfully');
+    } catch (e) {
+      print('❌ Failed to save Google auth tokens: $e');
+      return GoogleAuthResult(
+        success: false,
+        error: 'Gagal menyimpan data login. Silakan coba lagi.',
+      );
+    }
 
     // Determine if new user (for demo: always treat as existing for simplicity)
     // In real implementation, backend would tell us this
     final bool isNewUser = false;
 
+    print('✅ Google authentication successful');
     return GoogleAuthResult(
       success: true,
       isNewUser: isNewUser,

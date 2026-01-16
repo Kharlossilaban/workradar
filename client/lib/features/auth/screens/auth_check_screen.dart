@@ -25,14 +25,24 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
     // Check if user logged in
     final isLoggedIn = await SecureStorage.isLoggedIn();
 
+    // DEBUG: Log token status
+    final accessToken = await SecureStorage.getAccessToken();
+    final refreshToken = await SecureStorage.getRefreshToken();
+    print('🔍 AUTH CHECK:');
+    print('  - isLoggedIn: $isLoggedIn');
+    print('  - accessToken exists: ${accessToken != null}');
+    print('  - refreshToken exists: ${refreshToken != null}');
+
     if (mounted) {
       if (isLoggedIn) {
+        print('✅ User logged in → MainScreen');
         // Navigate to Main Screen
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const MainScreen()),
         );
       } else {
+        print('❌ User not logged in → LoginScreen');
         // Navigate to Login Screen
         Navigator.pushReplacement(
           context,
