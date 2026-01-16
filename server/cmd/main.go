@@ -207,6 +207,7 @@ func main() {
 	// Google OAuth routes
 	auth.Get("/google", oauthHandler.GoogleLogin)
 	auth.Get("/google/callback", oauthHandler.GoogleCallback)
+	auth.Post("/google/mobile", oauthHandler.GoogleMobileAuth) // Mobile app Google Sign-In (ID Token)
 	auth.Post("/logout", authHandler.Logout)
 
 	// MFA routes (Minggu 3: Multi-Factor Authentication)

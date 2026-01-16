@@ -309,27 +309,33 @@ func (s *AuthService) ChangePassword(userID, oldPassword, newPassword string) er
 }
 
 // GoogleOAuthLogin handles Google OAuth login/registration
-func (s *AuthService) GoogleOAuthLogin(googleID, email, username, picture string) (*models.User, string, bool, error) {
+func (s *AuthService) GoogleOAuthLogin(googleID, email, username, picture string) (*models.User, string, string, bool, error) {
 	// Find or create user
 	user, isNew, err := s.userRepo.FindOrCreateGoogleUser(googleID, email, username, picture)
 	if err != nil {
-		return nil, "", false, err
+		return nil, "", "", false, err
 	}
 
 	// Create default categories if new user
 	if isNew {
 		if err := s.categoryRepo.CreateDefaultCategories(user.ID); err != nil {
-			return nil, "", false, err
+			return nil, "", "", false, err
 		}
 	}
 
-	// Generate JWT token
+	// Generate JWT access token
 	token, err := utils.GenerateToken(user.ID, user.Email, string(user.UserType))
 	if err != nil {
-		return nil, "", false, err
+		return nil, "", "", false, err
 	}
 
-	return user, token, isNew, nil
+	// Generate refresh token
+	refreshToken, err := utils.GenerateRefreshToken(user.ID, user.Email, string(user.UserType))
+	if err != nil {
+		return nil, "", "", false, err
+	}
+
+	return user, token, refreshToken, isNew, nil
 }
 
 // SendVerificationOTP generates and sends OTP to user's email for verification

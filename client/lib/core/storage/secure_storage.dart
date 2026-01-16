@@ -18,7 +18,9 @@ class SecureStorage {
 
   /// Save access token
   static Future<void> saveAccessToken(String token) async {
+    print('[SecureStorage] 💾 Saving access token (length: ${token.length})');
     await _storage.write(key: _keyAccessToken, value: token);
+    print('[SecureStorage] ✅ Access token saved');
   }
 
   /// Get access token
@@ -78,7 +80,11 @@ class SecureStorage {
   static Future<bool> isLoggedIn() async {
     final accessToken = await getAccessToken();
     final refreshToken = await getRefreshToken();
-    return accessToken != null && refreshToken != null;
+    final result = accessToken != null && refreshToken != null;
+    print(
+      '[SecureStorage] 🔍 isLoggedIn check: $result (accessToken: ${accessToken != null}, refreshToken: ${refreshToken != null})',
+    );
+    return result;
   }
 
   /// Clear all data (logout)

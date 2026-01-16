@@ -19,26 +19,48 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
   }
 
   Future<void> _checkAuthStatus() async {
+    print('[AuthCheck] 🚀 Starting auth status check...');
+
     // Small delay untuk splash effect
     await Future.delayed(const Duration(milliseconds: 1500));
 
     // Check if user logged in
+    print('[AuthCheck] 🔍 Checking login status...');
     final isLoggedIn = await SecureStorage.isLoggedIn();
+    print('[AuthCheck] 📊 Login status: $isLoggedIn');
+
+    if (isLoggedIn) {
+      // Debug: Check actual token values
+      final accessToken = await SecureStorage.getAccessToken();
+      final refreshToken = await SecureStorage.getRefreshToken();
+      final email = await SecureStorage.getUserEmail();
+      print('[AuthCheck] 🎫 Access Token: ${accessToken?.substring(0, 20)}...');
+      print(
+        '[AuthCheck] 🔄 Refresh Token: ${refreshToken?.substring(0, 20)}...',
+      );
+      print('[AuthCheck] 📧 User Email: $email');
+    }
 
     if (mounted) {
       if (isLoggedIn) {
         // Navigate to Main Screen
+        print('[AuthCheck] ✅ User is logged in → Navigating to MainScreen');
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const MainScreen()),
         );
       } else {
         // Navigate to Login Screen
+        print(
+          '[AuthCheck] ⚠️ User is NOT logged in → Navigating to LoginScreen',
+        );
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const LoginScreen()),
         );
       }
+    } else {
+      print('[AuthCheck] ⚠️ Widget not mounted, skipping navigation');
     }
   }
 

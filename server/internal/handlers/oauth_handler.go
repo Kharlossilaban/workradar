@@ -97,7 +97,7 @@ func (h *OAuthHandler) GoogleCallback(c *fiber.Ctx) error {
 	}
 
 	// Login or create user
-	user, jwtToken, isNew, err := h.authService.GoogleOAuthLogin(
+	user, jwtToken, refreshToken, isNew, err := h.authService.GoogleOAuthLogin(
 		userInfo.ID,
 		userInfo.Email,
 		userInfo.Name,
@@ -111,9 +111,10 @@ func (h *OAuthHandler) GoogleCallback(c *fiber.Ctx) error {
 
 	// Return user data and JWT token
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"message":     "Google login successful",
-		"is_new_user": isNew,
-		"token":       jwtToken,
+		"message":       "Google login successful",
+		"is_new_user":   isNew,
+		"token":         jwtToken,
+		"refresh_token": refreshToken,
 		"user": fiber.Map{
 			"id":              user.ID,
 			"email":           user.Email,

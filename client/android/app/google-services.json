@@ -12,7 +12,20 @@
           "package_name": "com.pbl.workradar"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "307825008036-41upr7f2c2muug0os0ijkn8nfvdr2t5q.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.pbl.workradar",
+            "certificate_hash": "adbf1c42a9ed5bc26dee96188077f7e805356012"
+          }
+        },
+        {
+          "client_id": "307825008036-oerq463180plf7ptd3hksadnb4kjh7el.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBa5G7hOs493GtRrNHNWvB1YVx7QZDre7w"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "307825008036-8chna6onqakdaibg82j16p9odt1dohud.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "307825008036-le6am8t6n71nreot4c9db9oagf81bh56.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.pbl.workradar"
+              }
+            }
+          ]
         }
       }
     }
