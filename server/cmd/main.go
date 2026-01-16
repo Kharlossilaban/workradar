@@ -113,7 +113,7 @@ func main() {
 	paymentService := services.NewPaymentService(transactionRepo, userRepo, subscriptionService, botMessageService)
 	holidayService := services.NewHolidayService(holidayRepo)
 	leaveService := services.NewLeaveService(leaveRepo)
-	aiService := services.NewAIService(chatRepo, taskRepo, userRepo, config.AppConfig.GeminiAPIKey)
+	aiService := services.NewAIService(chatRepo, taskRepo, userRepo, config.AppConfig.GroqAPIKey)
 	oauthService := services.NewOAuthService(
 		config.AppConfig.GoogleClientID,
 		config.AppConfig.GoogleClientSecret,

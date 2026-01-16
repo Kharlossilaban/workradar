@@ -20,6 +20,7 @@ type AIService struct {
 	userRepo *repository.UserRepository
 	apiKey   string
 	model    string
+	baseURL  string
 }
 
 func NewAIService(chatRepo *repository.ChatRepository, taskRepo *repository.TaskRepository, userRepo *repository.UserRepository, apiKey string) *AIService {
@@ -28,41 +29,33 @@ func NewAIService(chatRepo *repository.ChatRepository, taskRepo *repository.Task
 		taskRepo: taskRepo,
 		userRepo: userRepo,
 		apiKey:   apiKey,
-		model:    "gemini-2.0-flash-lite", // Use lite model with separate free quota pool
+		model:    "llama-3.3-70b-versatile", // Groq's fastest model
+		baseURL:  "https://api.groq.com/openai/v1",
 	}
 }
 
-// Gemini REST API request/response structures
-type GeminiRequest struct {
-	Contents          []GeminiContent  `json:"contents"`
-	SystemInstruction *GeminiContent   `json:"systemInstruction,omitempty"`
-	GenerationConfig  *GeminiGenConfig `json:"generationConfig,omitempty"`
+// OpenAI-compatible API structures (for Groq)
+type ChatRequest struct {
+	Model       string        `json:"model"`
+	Messages    []ChatMessage `json:"messages"`
+	Temperature float64       `json:"temperature"`
+	MaxTokens   int           `json:"max_tokens,omitempty"`
 }
 
-type GeminiContent struct {
-	Role  string       `json:"role,omitempty"`
-	Parts []GeminiPart `json:"parts"`
+type ChatMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
 }
 
-type GeminiPart struct {
-	Text string `json:"text"`
-}
-
-type GeminiGenConfig struct {
-	Temperature float64 `json:"temperature"`
-}
-
-type GeminiResponse struct {
-	Candidates []struct {
-		Content struct {
-			Parts []struct {
-				Text string `json:"text"`
-			} `json:"parts"`
-		} `json:"content"`
-	} `json:"candidates"`
+type ChatResponse struct {
+	Choices []struct {
+		Message struct {
+			Content string `json:"content"`
+		} `json:"message"`
+	} `json:"choices"`
 	Error *struct {
 		Message string `json:"message"`
-		Code    int    `json:"code"`
+		Type    string `json:"type"`
 	} `json:"error,omitempty"`
 }
 
@@ -90,47 +83,41 @@ func (s *AIService) GenerateResponse(userID, userMessage string) (string, error)
 	}
 	log.Printf("🤖 AI Chat: Loaded %d messages from history", len(history))
 
-	// 3. Build request contents
-	var contents []GeminiContent
+	// 3. Build messages array (OpenAI format)
+	var messages []ChatMessage
 
-	// Add system context as first user-model exchange (only if no history)
-	if len(history) == 0 {
-		contents = append(contents, GeminiContent{
-			Role:  "user",
-			Parts: []GeminiPart{{Text: "Kamu adalah siapa? Apa yang bisa kamu bantu?"}},
-		})
-		contents = append(contents, GeminiContent{
-			Role:  "model",
-			Parts: []GeminiPart{{Text: systemPrompt}},
-		})
-	}
+	// Add system message
+	messages = append(messages, ChatMessage{
+		Role:    "system",
+		Content: systemPrompt,
+	})
 
 	// Add chat history
 	for _, msg := range history {
 		role := string(msg.Role)
 		if role == "assistant" || role == "model" {
-			role = "model"
+			role = "assistant"
 		} else {
 			role = "user"
 		}
-		contents = append(contents, GeminiContent{
-			Role:  role,
-			Parts: []GeminiPart{{Text: msg.Content}},
+		messages = append(messages, ChatMessage{
+			Role:    role,
+			Content: msg.Content,
 		})
 	}
 
 	// Add current user message
-	contents = append(contents, GeminiContent{
-		Role:  "user",
-		Parts: []GeminiPart{{Text: userMessage}},
+	messages = append(messages, ChatMessage{
+		Role:    "user",
+		Content: userMessage,
 	})
 
-	// 4. Create request (without systemInstruction)
-	reqBody := GeminiRequest{
-		Contents: contents,
-		GenerationConfig: &GeminiGenConfig{
-			Temperature: 0.7,
-		},
+	// 4. Create request
+	reqBody := ChatRequest{
+		Model:       s.model,
+		Messages:    messages,
+		Temperature: 0.7,
+		MaxTokens:   1024,
 	}
 
 	jsonData, err := json.Marshal(reqBody)
@@ -139,12 +126,21 @@ func (s *AIService) GenerateResponse(userID, userMessage string) (string, error)
 		return "", fmt.Errorf("gagal memproses request: %v", err)
 	}
 
-	// 5. Call Gemini REST API (v1beta endpoint with gemini-2.0-flash)
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent?key=%s", s.model, s.apiKey)
-	log.Printf("🤖 AI Chat: Calling Gemini API with model %s", s.model)
+	// 5. Call Groq API
+	url := fmt.Sprintf("%s/chat/completions", s.baseURL)
+	log.Printf("🤖 AI Chat: Calling Groq API with model %s", s.model)
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		log.Printf("❌ AI Chat: Failed to create request: %v", err)
+		return "", fmt.Errorf("gagal membuat request: %v", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", s.apiKey))
 
 	client := &http.Client{Timeout: 30 * time.Second}
-	resp, err := client.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	resp, err := client.Do(req)
 	if err != nil {
 		log.Printf("❌ AI Chat: HTTP request failed: %v", err)
 		return "", fmt.Errorf("gagal menghubungi AI: %v", err)
@@ -157,33 +153,33 @@ func (s *AIService) GenerateResponse(userID, userMessage string) (string, error)
 		return "", fmt.Errorf("gagal membaca respons AI: %v", err)
 	}
 
-	var geminiResp GeminiResponse
-	if err := json.Unmarshal(body, &geminiResp); err != nil {
+	var chatResp ChatResponse
+	if err := json.Unmarshal(body, &chatResp); err != nil {
 		log.Printf("❌ AI Chat: Failed to parse response: %v", err)
 		return "", fmt.Errorf("gagal memproses respons AI: %v", err)
 	}
 
 	// Check for API error
-	if geminiResp.Error != nil {
-		log.Printf("❌ AI Chat: Gemini API error: %s (code: %d)", geminiResp.Error.Message, geminiResp.Error.Code)
+	if chatResp.Error != nil {
+		log.Printf("❌ AI Chat: Groq API error: %s (type: %s)", chatResp.Error.Message, chatResp.Error.Type)
 		
 		// Handle rate limit error with friendly message
-		if geminiResp.Error.Code == 429 || strings.Contains(strings.ToLower(geminiResp.Error.Message), "quota") || strings.Contains(strings.ToLower(geminiResp.Error.Message), "rate limit") {
+		if strings.Contains(strings.ToLower(chatResp.Error.Type), "rate_limit") || strings.Contains(strings.ToLower(chatResp.Error.Message), "rate limit") {
 			log.Println("⚠️ AI Chat: Rate limit exceeded, returning fallback response")
 			return s.getFallbackResponse(userMessage), nil
 		}
 		
-		return "", fmt.Errorf("AI error: %s", geminiResp.Error.Message)
+		return "", fmt.Errorf("AI error: %s", chatResp.Error.Message)
 	}
 
 	// Extract response text
-	if len(geminiResp.Candidates) == 0 || len(geminiResp.Candidates[0].Content.Parts) == 0 {
-		log.Println("⚠️ AI Chat: Empty response from Gemini")
+	if len(chatResp.Choices) == 0 {
+		log.Println("⚠️ AI Chat: Empty response from Groq")
 		return "Maaf, saya tidak bisa memberikan jawaban saat ini.", nil
 	}
 
-	aiResponse := geminiResp.Candidates[0].Content.Parts[0].Text
-	log.Printf("✅ AI Chat: Got response from Gemini (%d chars)", len(aiResponse))
+	aiResponse := chatResp.Choices[0].Message.Content
+	log.Printf("✅ AI Chat: Got response from Groq (%d chars)", len(aiResponse))
 
 	// 6. Save conversation to DB
 	log.Println("🤖 AI Chat: Saving conversation to DB")

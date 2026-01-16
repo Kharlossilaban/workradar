@@ -45,8 +45,8 @@ type Config struct {
 	MidtransClientKey    string
 	MidtransIsProduction bool
 
-	// Optional - Gemini AI
-	GeminiAPIKey string
+	// Optional - Groq AI (formerly Gemini)
+	GroqAPIKey string
 
 	// Optional - Resend Email
 	ResendAPIKey string
@@ -122,7 +122,7 @@ func Load() error {
 		MidtransClientKey:    getEnv("MIDTRANS_CLIENT_KEY", ""),
 		MidtransIsProduction: getEnvAsBool("MIDTRANS_IS_PRODUCTION", false),
 
-		GeminiAPIKey: getEnv("GEMINI_API_KEY", ""),
+		GroqAPIKey: getEnv("GROQ_API_KEY", ""),
 
 		// Resend Email Configuration
 		ResendAPIKey: getEnv("RESEND_API_KEY", ""),
