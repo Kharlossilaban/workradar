@@ -54,7 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if (mounted) {
           final navigator = Navigator.of(context);
           final scaffoldMessenger = ScaffoldMessenger.of(context);
-          
+
           // Navigate to Main Screen
           navigator.pushReplacement(
             MaterialPageRoute(builder: (context) => const MainScreen()),
@@ -74,7 +74,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if (mounted) {
           final navigator = Navigator.of(context);
           final scaffoldMessenger = ScaffoldMessenger.of(context);
-          
+
           // Check if email not verified - redirect to OTP verification
           if (e.message.toLowerCase().contains('email not verified') ||
               e.message.toLowerCase().contains('verify your email')) {
@@ -131,7 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       // Step 1: Trigger Google Sign-In (shows native account picker)
-      final account = await _googleAuthService.signIn();
+      final account = await _googleAuthService.signIn(isRegister: false);
 
       // User cancelled the sign-in
       if (account == null) {
@@ -163,7 +163,9 @@ class _LoginScreenState extends State<LoginScreen> {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(result.error ?? 'Login dengan Google gagal.'),
+              content: Text(
+                result.error ?? 'Login dengan Google gagal. Silakan coba lagi.',
+              ),
               backgroundColor: Colors.red,
             ),
           );
@@ -173,16 +175,21 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         setState(() => _isGoogleLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isGoogleLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Tidak ada koneksi internet. Periksa jaringan Anda.'),
+          SnackBar(
+            content: Text('Terjadi kesalahan: ${e.toString()}'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
           ),
         );
       }

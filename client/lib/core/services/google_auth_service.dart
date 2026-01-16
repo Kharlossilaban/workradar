@@ -21,14 +21,40 @@ class GoogleAuthService {
   /// Sign in with Google
   /// Returns GoogleSignInAccount on success, null if cancelled
   /// Throws GoogleAuthException on error
-  Future<GoogleSignInAccount?> signIn() async {
+  /// [isRegister] - true if called from registration flow, false for login
+  Future<GoogleSignInAccount?> signIn({bool isRegister = false}) async {
     try {
       // Trigger Google Sign-In flow (shows native account picker)
       final GoogleSignInAccount? account = await _googleSignIn.signIn();
       return account;
+    } on Exception catch (e) {
+      // Determine error message based on context
+      final action = isRegister ? 'Pendaftaran' : 'Login';
+
+      // Get specific error message
+      String errorMessage = '$action dengan Google gagal. Silakan coba lagi.';
+
+      // Check for specific error types
+      if (e.toString().contains('network_error') ||
+          e.toString().contains('NetworkError')) {
+        errorMessage = 'Tidak ada koneksi internet. Periksa jaringan Anda.';
+      } else if (e.toString().contains('sign_in_canceled') ||
+          e.toString().contains('ERROR_CANCELED')) {
+        // User cancelled - return null instead of throwing
+        return null;
+      } else if (e.toString().contains('sign_in_failed') ||
+          e.toString().contains('ERROR_SIGN_IN_FAILED')) {
+        errorMessage =
+            '$action dengan Google gagal. Pastikan Anda memilih akun Google yang valid.';
+      }
+
+      throw GoogleAuthException(message: errorMessage, originalError: e);
     } catch (e) {
+      // Handle non-Exception errors
+      final action = isRegister ? 'Pendaftaran' : 'Login';
       throw GoogleAuthException(
-        message: 'Login dengan Google gagal. Coba lagi.',
+        message:
+            '$action dengan Google gagal. Silakan coba lagi.\n\nDetail: ${e.toString()}',
         originalError: e,
       );
     }

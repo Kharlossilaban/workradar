@@ -69,10 +69,16 @@ class AuthInterceptor extends Interceptor {
               return handler.resolve(retryResponse);
             }
           }
-        } catch (e) {
-          // Refresh failed, logout user
-          await SecureStorage.clearAll();
-          // Kembali ke login screen akan di-handle oleh aplikasi
+        } catch (refreshError) {
+          // ONLY clear tokens if refresh endpoint specifically says token is invalid
+          // Don't clear on network errors or server errors
+          if (refreshError is DioException &&
+              refreshError.response?.statusCode == 401) {
+            // Refresh token juga invalid - benar-benar logout
+            await SecureStorage.clearAll();
+          }
+          // Untuk network error atau server error, biarkan user tetap login
+          // Mereka bisa coba lagi nanti saat network normal
         }
       }
     }

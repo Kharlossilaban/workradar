@@ -45,10 +45,15 @@ class _ReminderModalState extends State<ReminderModal> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Pengingat',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                const Expanded(
+                  child: Text(
+                    'Pengingat',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
+                const SizedBox(width: 8),
                 Switch(
                   value: _isEnabled,
                   onChanged: (value) {
@@ -65,14 +70,23 @@ class _ReminderModalState extends State<ReminderModal> {
 
               const Text(
                 'Ingatkan saya',
-                style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppTheme.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
 
               const SizedBox(height: 12),
 
               // Dropdown - VIP gets more options
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey.shade300),
                   borderRadius: BorderRadius.circular(12),
@@ -84,7 +98,12 @@ class _ReminderModalState extends State<ReminderModal> {
                   items: _options.map((minutes) {
                     return DropdownMenuItem(
                       value: minutes,
-                      child: Text('$minutes menit sebelumnya'),
+                      child: Text(
+                        '$minutes menit sebelumnya',
+                        style: const TextStyle(fontSize: 14),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     );
                   }).toList(),
                   onChanged: (value) {

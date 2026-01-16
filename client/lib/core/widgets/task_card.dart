@@ -198,27 +198,35 @@ class TaskCard extends StatelessWidget {
                                         ? TextDecoration.lineThrough
                                         : null,
                                   ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                                 const SizedBox(height: 4),
                                 Row(
                                   children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: _categoryColor.withValues(
-                                          alpha: 0.1,
+                                    Flexible(
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
                                         ),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Text(
-                                        task.categoryName,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                          color: _categoryColor,
+                                        decoration: BoxDecoration(
+                                          color: _categoryColor.withValues(
+                                            alpha: 0.1,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          task.categoryName,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                            color: _categoryColor,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
                                     ),
@@ -241,6 +249,8 @@ class TaskCard extends StatelessWidget {
                                           fontWeight: FontWeight.w500,
                                           color: _getDifficultyColor(),
                                         ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
                                   ],
@@ -270,18 +280,24 @@ class TaskCard extends StatelessWidget {
                                   : textLightColor,
                             ),
                             const SizedBox(width: 6),
-                            Text(
-                              isTaskOverdue
-                                  ? 'Terlambat - ${DateFormat('HH:mm').format(task.deadline!)}'
-                                  : DateFormat('HH:mm').format(task.deadline!),
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: isTaskOverdue
-                                    ? FontWeight.w600
-                                    : FontWeight.normal,
-                                color: isTaskOverdue
-                                    ? _overdueColor
-                                    : textSecondaryColor,
+                            Flexible(
+                              child: Text(
+                                isTaskOverdue
+                                    ? 'Terlambat - ${DateFormat('HH:mm').format(task.deadline!)}'
+                                    : DateFormat(
+                                        'HH:mm',
+                                      ).format(task.deadline!),
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: isTaskOverdue
+                                      ? FontWeight.w600
+                                      : FontWeight.normal,
+                                  color: isTaskOverdue
+                                      ? _overdueColor
+                                      : textSecondaryColor,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -293,11 +309,15 @@ class TaskCard extends StatelessWidget {
                               color: textLightColor,
                             ),
                             const SizedBox(width: 6),
-                            Text(
-                              task.durationString,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: textSecondaryColor,
+                            Flexible(
+                              child: Text(
+                                task.durationString,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: textSecondaryColor,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             const SizedBox(width: 16),

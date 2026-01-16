@@ -112,7 +112,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     try {
       // Step 1: Trigger Google Sign-In (shows native account picker)
-      final account = await _googleAuthService.signIn();
+      final account = await _googleAuthService.signIn(isRegister: true);
 
       // User cancelled the sign-in
       if (account == null) {
@@ -144,7 +144,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(result.error ?? 'Registrasi dengan Google gagal.'),
+              content: Text(
+                result.error ??
+                    'Pendaftaran dengan Google gagal. Silakan coba lagi.',
+              ),
               backgroundColor: Colors.red,
             ),
           );
@@ -154,16 +157,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (mounted) {
         setState(() => _isGoogleLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(e.message),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isGoogleLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Tidak ada koneksi internet. Periksa jaringan Anda.'),
+          SnackBar(
+            content: Text('Terjadi kesalahan: ${e.toString()}'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
           ),
         );
       }

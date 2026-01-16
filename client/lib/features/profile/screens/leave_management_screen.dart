@@ -201,7 +201,13 @@ class _LeaveManagementScreenState extends State<LeaveManagementScreen>
                 ),
               ),
               const SizedBox(width: 12),
-              const Text('Tambah Cuti'),
+              const Expanded(
+                child: Text(
+                  'Tambah Cuti',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ],
           ),
           content: Column(
@@ -236,11 +242,15 @@ class _LeaveManagementScreenState extends State<LeaveManagementScreen>
                     children: [
                       const Icon(Iconsax.calendar, size: 20),
                       const SizedBox(width: 12),
-                      Text(
-                        DateFormat(
-                          'EEEE, dd MMMM yyyy',
-                          'id_ID',
-                        ).format(selectedDate),
+                      Expanded(
+                        child: Text(
+                          DateFormat(
+                            'EEEE, dd MMMM yyyy',
+                            'id_ID',
+                          ).format(selectedDate),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),

@@ -34,7 +34,11 @@ class _EditCategoryDialogState extends State<EditCategoryDialog> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return AlertDialog(
-      title: Text(isEditing ? 'Edit Kategori' : 'Buat Kategori Baru'),
+      title: Text(
+        isEditing ? 'Edit Kategori' : 'Buat Kategori Baru',
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
       content: Form(
         key: _formKey,
         child: TextFormField(

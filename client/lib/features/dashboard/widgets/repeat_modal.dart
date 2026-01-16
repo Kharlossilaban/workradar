@@ -56,10 +56,18 @@ class _RepeatModalState extends State<RepeatModal> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Tetapkan sebagai Ulangi Tugas',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  const Expanded(
+                    child: Text(
+                      'Tetapkan sebagai Ulangi Tugas',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Switch(
                     value: _isEnabled,
                     onChanged: (value) {
@@ -92,11 +100,20 @@ class _RepeatModalState extends State<RepeatModal> {
                 // Repeat interval
                 const Text(
                   'Ulangi Setiap',
-                  style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppTheme.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     border: Border.all(color: Colors.grey.shade300),
                     borderRadius: BorderRadius.circular(12),
@@ -105,12 +122,21 @@ class _RepeatModalState extends State<RepeatModal> {
                     value: _repeatInterval.clamp(1, _getMaxInterval()),
                     isExpanded: true,
                     underline: const SizedBox(),
-                    items: List.generate(_getMaxInterval(), (index) => index + 1).map((interval) {
-                      return DropdownMenuItem(
-                        value: interval,
-                        child: Text('$interval ${_getIntervalUnit()}'),
-                      );
-                    }).toList(),
+                    items:
+                        List.generate(
+                          _getMaxInterval(),
+                          (index) => index + 1,
+                        ).map((interval) {
+                          return DropdownMenuItem(
+                            value: interval,
+                            child: Text(
+                              '$interval ${_getIntervalUnit()}',
+                              style: const TextStyle(fontSize: 14),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          );
+                        }).toList(),
                     onChanged: (value) {
                       if (value != null) {
                         setState(() => _repeatInterval = value);
@@ -124,11 +150,15 @@ class _RepeatModalState extends State<RepeatModal> {
                 // End date - VIP ONLY FEATURE
                 Row(
                   children: [
-                    const Text(
-                      'Ulangi berakhir pada',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppTheme.textSecondary,
+                    const Flexible(
+                      child: Text(
+                        'Ulangi berakhir pada',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppTheme.textSecondary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     if (!widget.isVip) ...[
@@ -185,23 +215,29 @@ class _RepeatModalState extends State<RepeatModal> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          widget.isVip
-                              ? (_hasEndDate && _endDate != null
-                                    ? DateFormat(
-                                        'dd MMMM yyyy',
-                                        'id_ID',
-                                      ).format(_endDate!)
-                                    : 'Tanpa henti')
-                              : 'Upgrade ke VIP untuk fitur ini',
-                          style: TextStyle(
-                            color: widget.isVip
-                                ? (_hasEndDate
-                                      ? AppTheme.textPrimary
-                                      : AppTheme.textSecondary)
-                                : AppTheme.textSecondary,
+                        Expanded(
+                          child: Text(
+                            widget.isVip
+                                ? (_hasEndDate && _endDate != null
+                                      ? DateFormat(
+                                          'dd MMMM yyyy',
+                                          'id_ID',
+                                        ).format(_endDate!)
+                                      : 'Tanpa henti')
+                                : 'Upgrade ke VIP untuk fitur ini',
+                            style: TextStyle(
+                              color: widget.isVip
+                                  ? (_hasEndDate
+                                        ? AppTheme.textPrimary
+                                        : AppTheme.textSecondary)
+                                  : AppTheme.textSecondary,
+                              fontSize: 14,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        const SizedBox(width: 8),
                         Icon(
                           widget.isVip ? Icons.calendar_today : Iconsax.lock,
                           size: 20,
@@ -219,22 +255,39 @@ class _RepeatModalState extends State<RepeatModal> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Batal'),
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Batal'),
+                    ),
                   ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context, {
-                        'repeatType': _isEnabled
-                            ? _repeatType
-                            : RepeatType.none,
-                        'repeatInterval': _repeatInterval,
-                        'endDate': _hasEndDate ? _endDate : null,
-                      });
-                    },
-                    child: const Text('Selesai'),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context, {
+                          'repeatType': _isEnabled
+                              ? _repeatType
+                              : RepeatType.none,
+                          'repeatInterval': _repeatInterval,
+                          'endDate': _hasEndDate ? _endDate : null,
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        backgroundColor: AppTheme.primaryColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Selesai'),
+                    ),
                   ),
                 ],
               ),

@@ -298,13 +298,27 @@ class _CalendarModalState extends State<CalendarModal> {
     required VoidCallback onTap,
   }) {
     return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       leading: Icon(icon, color: AppTheme.textSecondary),
-      title: Text(title),
+      title: Text(
+        title,
+        style: const TextStyle(fontSize: 14),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(value, style: TextStyle(color: AppTheme.textSecondary)),
-          const Icon(Icons.chevron_right),
+          Flexible(
+            child: Text(
+              value,
+              style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 4),
+          const Icon(Icons.chevron_right, size: 20),
         ],
       ),
       onTap: onTap,
